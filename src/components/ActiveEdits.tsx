@@ -14,9 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { Pause as PauseIcon, Play, CheckCircle2, Timer } from "lucide-react";
 import { usePauseEdit, useResumeEdit, useFinishEdit, type Pause } from "@/hooks/useVideoEdits";
-import { formatDuration } from "@/lib/time";
+import { formatDuration, brTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 
 type VideoEdit = Tables<"video_edits">;
@@ -153,7 +152,7 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
           <div className="flex items-center gap-2 rounded-md bg-secondary/60 px-2.5 py-1.5 text-xs">
             <PauseIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <span className="text-muted-foreground">
-              Pausado às {format(parseISO(lastPausedAt), "HH:mm")}
+              Pausado às {brTime(lastPausedAt)}
             </span>
           </div>
         )}

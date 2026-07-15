@@ -15,3 +15,28 @@ export function formatDuration(totalSeconds: number): string {
   if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
   return parts.join(" ");
 }
+
+// Todas as timestamps são exibidas no horário de Brasília (America/Sao_Paulo),
+// independente do fuso do navegador/PC de quem está olhando.
+const BR_TZ = "America/Sao_Paulo";
+
+/** ISO UTC → "HH:mm" no horário de Brasília. */
+export function brTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("pt-BR", {
+    timeZone: BR_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** ISO UTC → "dd/MM/yyyy HH:mm" no horário de Brasília. */
+export function brDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("pt-BR", {
+    timeZone: BR_TZ,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

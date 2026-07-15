@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2, List, Film, ExternalLink } from "lucide-react";
 import { useDeleteVideoEdit } from "@/hooks/useVideoEdits";
 import type { Tables } from "@/integrations/supabase/types";
-import { formatDuration } from "@/lib/time";
+import { formatDuration, brTime } from "@/lib/time";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -84,7 +84,12 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                   {edits.slice(0, 20).map((edit) => (
                     <TableRow key={edit.id}>
                       <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
-                        {format(new Date(edit.edit_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })}
+                        <span className="block">
+                          {format(new Date(edit.edit_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })}
+                        </span>
+                        <span className="block text-[11px] text-muted-foreground/70">
+                          {brTime(edit.created_at)}
+                        </span>
                       </TableCell>
                       <TableCell className="font-medium">{edit.client_name}</TableCell>
                       <TableCell className="max-w-[200px] truncate text-muted-foreground">
@@ -136,7 +141,7 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                       <p className="truncate text-xs text-muted-foreground">{edit.video_name}</p>
                     )}
                     <p className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
-                      {format(new Date(edit.edit_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })} · {edit.editor_name}
+                      {format(new Date(edit.edit_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })} {brTime(edit.created_at)} · {edit.editor_name}
                       {edit.elapsed_seconds ? ` · ${formatDuration(edit.elapsed_seconds)}` : ""}
                     </p>
                     <div className="mt-1">
