@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { FormatBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2, List, Film, ExternalLink } from "lucide-react";
-import { useDeleteVideoEdit } from "@/hooks/useVideoEdits";
+import { useDeleteVideoEdit, type Pause } from "@/hooks/useVideoEdits";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDuration, brTime } from "@/lib/time";
 import { format } from "date-fns";
@@ -50,6 +50,20 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
 
   const fmtTime = (e: VideoEdit) => (e.elapsed_seconds ? formatDuration(e.elapsed_seconds) : "—");
 
+  // Intervalos de pausa (horário de Brasília) + tempo pausado total.
+  const pauseInfo = (e: VideoEdit) => {
+    const raw = e.pauses as unknown as Pause[];
+    const pauses = Array.isArray(raw) ? raw : [];
+    const intervals = pauses.map(
+      (p) => `${brTime(p.paused_at)} – ${p.resumed_at ? brTime(p.resumed_at) : "…"}`
+    );
+    const totalSec = pauses.reduce(
+      (s, p) => s + (p.resumed_at ? (Date.parse(p.resumed_at) - Date.parse(p.paused_at)) / 1000 : 0),
+      0
+    );
+    return { intervals, totalSec };
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -76,6 +90,7 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                     <TableHead>Formato</TableHead>
                     <TableHead>Editor</TableHead>
                     <TableHead>Tempo</TableHead>
+                    <TableHead>Pausas</TableHead>
                     <TableHead className="w-12"></TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
@@ -108,6 +123,26 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                       <TableCell className="whitespace-nowrap">{edit.editor_name}</TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-muted-foreground">
                         {fmtTime(edit)}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {(() => {
+                          const info = pauseInfo(edit);
+                          if (info.intervals.length === 0) return "—";
+                          return (
+                            <div className="space-y-0.5">
+                              {info.intervals.map((iv, i) => (
+                                <div key={i} className="whitespace-nowrap tabular-nums">
+                                  {iv}
+                                </div>
+                              ))}
+                              {info.totalSec > 0 && (
+                                <div className="text-[11px] text-muted-foreground/70">
+                                  total {formatDuration(info.totalSec)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         <EditLinks edit={edit} />
@@ -144,6 +179,11 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                       {format(new Date(edit.edit_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })} {brTime(edit.created_at)} · {edit.editor_name}
                       {edit.elapsed_seconds ? ` · ${formatDuration(edit.elapsed_seconds)}` : ""}
                     </p>
+                    {pauseInfo(edit).intervals.length > 0 && (
+                      <p className="mt-0.5 text-[11px] tabular-nums text-muted-foreground/80">
+                        Pausas: {pauseInfo(edit).intervals.join(", ")}
+                      </p>
+                    )}
                     <div className="mt-1">
                       <EditLinks edit={edit} />
                     </div>

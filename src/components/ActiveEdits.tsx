@@ -174,10 +174,20 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
               Retomar
             </Button>
           )}
-          <Button size="sm" onClick={() => setFinishOpen(true)}>
+          <Button
+            size="sm"
+            onClick={() => setFinishOpen(true)}
+            disabled={!isEditing}
+            title={!isEditing ? "Retome a edição para finalizar" : undefined}
+          >
             <CheckCircle2 className="mr-1.5 h-4 w-4" />
             Finalizar
           </Button>
+          {!isEditing && (
+            <span className="w-full text-[11px] text-muted-foreground">
+              Retome a edição para finalizar.
+            </span>
+          )}
         </div>
       </CardContent>
 
