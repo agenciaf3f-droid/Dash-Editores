@@ -73,11 +73,11 @@ const Index = () => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-shell min-h-screen">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 px-4 py-4 backdrop-blur-md sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/70 px-4 py-4 backdrop-blur-md sm:px-6">
         <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 ring-1 ring-primary/20">
+          <div className="rounded-lg bg-primary/10 p-2 ring-1 ring-primary/25 shadow-[0_0_24px_-8px_hsl(174_72%_50%/0.8)]">
             <Film className="h-6 w-6 text-primary" />
           </div>
           <div>

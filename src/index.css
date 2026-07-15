@@ -4,14 +4,16 @@
 
 @layer base {
   :root {
-    --background: 220 20% 7%;
-    --foreground: 210 20% 92%;
+    --background: 224 27% 6%;
+    --foreground: 210 22% 94%;
 
     --card: 220 18% 10%;
-    --card-foreground: 210 20% 92%;
+    /* Bottom stop of the card surface gradient — a touch deeper than --card. */
+    --card-bottom: 222 20% 8%;
+    --card-foreground: 210 22% 94%;
 
     --popover: 220 18% 12%;
-    --popover-foreground: 210 20% 92%;
+    --popover-foreground: 210 22% 94%;
 
     --primary: 174 72% 50%;
     --primary-foreground: 220 20% 7%;
@@ -20,7 +22,7 @@
     --secondary-foreground: 210 20% 85%;
 
     --muted: 220 14% 14%;
-    --muted-foreground: 215 15% 55%;
+    --muted-foreground: 216 16% 64%;
 
     --accent: 174 72% 50%;
     --accent-foreground: 220 20% 7%;
@@ -28,8 +30,8 @@
     --destructive: 0 72% 55%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 14% 18%;
-    --input: 220 14% 18%;
+    --border: 220 14% 20%;
+    --input: 220 14% 20%;
     --ring: 174 72% 50%;
 
     --radius: 0.75rem;
@@ -66,6 +68,19 @@
     letter-spacing: -0.006em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Atmospheric depth: soft teal/purple glow anchored to the top of the viewport,
+     so the page never reads as flat black. Applied to the opaque full-height
+     wrappers (which otherwise paint over any body background). */
+  .app-shell {
+    position: relative;
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(70rem 42rem at 50% -14rem, hsl(174 72% 50% / 0.11), transparent 62%),
+      radial-gradient(48rem 38rem at 100% -6rem, hsl(262 60% 58% / 0.13), transparent 58%),
+      radial-gradient(46rem 40rem at 0% -4rem, hsl(200 80% 55% / 0.06), transparent 55%);
+    background-repeat: no-repeat;
   }
 
   h1, h2, h3, h4, h5, h6 {

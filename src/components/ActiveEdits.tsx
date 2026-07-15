@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Badge, FormatBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,8 @@ import {
 import { Pause as PauseIcon, Play, CheckCircle2, Timer } from "lucide-react";
 import { usePauseEdit, useResumeEdit, useFinishEdit, type Pause } from "@/hooks/useVideoEdits";
 import { formatDuration } from "@/lib/time";
+import { cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 
 type VideoEdit = Tables<"video_edits">;
@@ -48,8 +50,8 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
 
   const isEditing = edit.status === "editing";
   const pauses = (edit.pauses as unknown as Pause[]) ?? [];
-  const lastReason =
-    edit.status === "paused" && pauses.length > 0 ? pauses[pauses.length - 1].reason : null;
+  const lastPausedAt =
+    edit.status === "paused" && pauses.length > 0 ? pauses[pauses.length - 1].paused_at : null;
 
   // Live ticking clock: re-render every second while running.
   const [now, setNow] = useState(() => Date.now());
@@ -70,21 +72,9 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
     (edit.elapsed_seconds ?? 0) +
     (isEditing && edit.timer_started_at ? (now - Date.parse(edit.timer_started_at)) / 1000 : 0);
 
-  // Pause dialog
-  const [pauseOpen, setPauseOpen] = useState(false);
-  const [reason, setReason] = useState("");
-  const handleConfirmPause = () => {
-    if (!reason.trim()) return;
-    // Close before mutating so the card can safely unmount later without stranding
-    // Radix's body pointer-events cleanup.
-    setPauseOpen(false);
-    pauseEdit.mutate({
-      id: edit.id,
-      reason: reason.trim(),
-      elapsedSeconds: Math.round(elapsed),
-      pauses,
-    });
-    setReason("");
+  // Pausing is immediate — no reason dialog.
+  const handlePause = () => {
+    pauseEdit.mutate({ id: edit.id, elapsedSeconds: Math.round(elapsed), pauses });
   };
 
   const handleResume = () => {
@@ -110,7 +100,12 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
   return (
     <Card
       data-testid="active-edit-card"
-      className={`border-l-2 ${isEditing ? "border-l-primary" : "border-l-muted-foreground/25"}`}
+      className={cn(
+        "border-l-2",
+        isEditing
+          ? "border-l-primary ring-1 ring-primary/15 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.05),0_0_44px_-22px_hsl(174_72%_50%/0.85)]"
+          : "border-l-muted-foreground/25",
+      )}
     >
       <CardContent className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
@@ -121,12 +116,12 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Badge variant="secondary">{edit.video_format}</Badge>
+            <FormatBadge format={edit.video_format} />
             <Badge
               variant="outline"
               className={
                 isEditing
-                  ? "gap-1.5 border-primary/30 bg-primary/10 text-primary"
+                  ? "gap-1.5 border-primary/40 bg-gradient-to-r from-primary/25 to-primary/10 text-primary shadow-[0_0_16px_-6px_hsl(174_72%_50%/0.85)]"
                   : "text-muted-foreground"
               }
             >
@@ -144,22 +139,28 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
           </p>
           <span
             data-testid="active-timer"
-            className="font-heading text-3xl font-bold tabular-nums tracking-tight"
+            className={cn(
+              "font-heading text-3xl font-bold tabular-nums tracking-tight",
+              isEditing && "text-primary",
+            )}
+            style={isEditing ? { textShadow: "0 0 24px hsl(174 72% 50% / 0.4)" } : undefined}
           >
             {formatDuration(elapsed)}
           </span>
         </div>
 
-        {lastReason && (
+        {lastPausedAt && (
           <div className="flex items-center gap-2 rounded-md bg-secondary/60 px-2.5 py-1.5 text-xs">
             <PauseIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate text-foreground">{lastReason}</span>
+            <span className="text-muted-foreground">
+              Pausado às {format(parseISO(lastPausedAt), "HH:mm")}
+            </span>
           </div>
         )}
 
         <div className="flex flex-wrap gap-2">
           {isEditing ? (
-            <Button variant="outline" size="sm" onClick={() => setPauseOpen(true)}>
+            <Button variant="outline" size="sm" onClick={handlePause} disabled={pauseEdit.isPending}>
               <PauseIcon className="mr-1.5 h-4 w-4" />
               Pausar
             </Button>
@@ -180,42 +181,6 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
           </Button>
         </div>
       </CardContent>
-
-      {/* Pause dialog — requires a non-empty reason */}
-      <Dialog open={pauseOpen} onOpenChange={setPauseOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Pausar edição</DialogTitle>
-            <DialogDescription>Informe o motivo da pausa para continuar.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor={`pause-reason-${edit.id}`}>Motivo</Label>
-            <Input
-              id={`pause-reason-${edit.id}`}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Ex.: almoço, reunião..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleConfirmPause();
-                }
-              }}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPauseOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleConfirmPause}
-              disabled={!reason.trim() || pauseEdit.isPending}
-            >
-              Confirmar pausa
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Finish dialog — asks if ready, requires the edited link */}
       <Dialog open={finishOpen} onOpenChange={setFinishOpen}>

@@ -4,7 +4,8 @@ import type { Json, TablesInsert } from "@/integrations/supabase/types";
 import { toast } from "sonner";
 
 export type Pause = {
-  reason: string;
+  // Legacy rows may carry a reason; the app no longer writes or reads it.
+  reason?: string;
   paused_at: string;
   resumed_at: string | null;
 };
@@ -71,18 +72,16 @@ export function usePauseEdit() {
   return useMutation({
     mutationFn: async ({
       id,
-      reason,
       elapsedSeconds,
       pauses,
     }: {
       id: string;
-      reason: string;
       elapsedSeconds: number;
       pauses: Pause[];
     }) => {
       const nextPauses: Pause[] = [
         ...pauses,
-        { reason, paused_at: new Date().toISOString(), resumed_at: null },
+        { paused_at: new Date().toISOString(), resumed_at: null },
       ];
       const { error } = await supabase
         .from("video_edits")

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
-import { cn } from "@/lib/utils";
+import { cn, formatBadgeStyle } from "@/lib/utils";
 
 const badgeVariants = cva(
   "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
@@ -26,4 +26,18 @@ function Badge({ className, variant, ...props }: BadgeProps) {
   return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
-export { Badge, badgeVariants };
+/** Color-coded badge for a video format, using its canonical brand accent. */
+function FormatBadge({ format, className, ...props }: { format: string } & Omit<BadgeProps, "variant">) {
+  return (
+    <Badge
+      variant="outline"
+      style={formatBadgeStyle(format)}
+      className={cn("border font-semibold", className)}
+      {...props}
+    >
+      {format}
+    </Badge>
+  );
+}
+
+export { Badge, badgeVariants, FormatBadge };

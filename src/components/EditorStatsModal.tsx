@@ -55,18 +55,6 @@ export function EditorStatsModal({ editor, edits, color, onClose }: EditorStatsM
       ? timed.reduce((s, e) => s + asPauses(e.pauses).length, 0) / timed.length
       : null;
 
-    const reasonCounts: Record<string, number> = {};
-    rows.forEach((e) => {
-      asPauses(e.pauses).forEach((p) => {
-        const reason =
-          p && typeof p === "object" && typeof p.reason === "string" && p.reason.trim()
-            ? (p.reason as string).trim()
-            : "Sem motivo";
-        reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
-      });
-    });
-    const reasons = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]);
-
     // Formatos: sum of quantity per video_format (matches the app's "Por Formato" pie
     // and totals to "Vídeos editados").
     const formatCounts: Record<string, number> = {};
@@ -75,10 +63,9 @@ export function EditorStatsModal({ editor, edits, color, onClose }: EditorStatsM
     });
     const formats = Object.entries(formatCounts).sort((a, b) => b[1] - a[1]);
 
-    return { videos, avgTime, avgPauses, reasons, formats };
+    return { videos, avgTime, avgPauses, formats };
   }, [editor, edits, from, to]);
 
-  const maxReason = stats.reasons.length ? stats.reasons[0][1] : 0;
   const avgPausesLabel =
     stats.avgPauses === null
       ? "—"
@@ -141,7 +128,13 @@ export function EditorStatsModal({ editor, edits, color, onClose }: EditorStatsM
         </div>
 
         {/* Hero — vídeos editados */}
-        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+        <div
+          className="relative overflow-hidden rounded-lg border px-4 py-3"
+          style={{
+            borderColor: `color-mix(in srgb, ${color} 32%, transparent)`,
+            background: `linear-gradient(135deg, color-mix(in srgb, ${color} 14%, transparent), transparent 70%)`,
+          }}
+        >
           <div
             className="font-heading text-4xl font-bold leading-none tabular-nums"
             style={{ color }}
@@ -161,38 +154,6 @@ export function EditorStatsModal({ editor, edits, color, onClose }: EditorStatsM
             <div className="font-heading text-xl font-semibold tabular-nums">{avgPausesLabel}</div>
             <div className="mt-1 text-xs text-muted-foreground">Pausas / vídeo</div>
           </div>
-        </div>
-
-        {/* Motivos de pausa */}
-        <div>
-          <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Motivos de pausa
-          </h4>
-          {stats.reasons.length ? (
-            <ul className="mt-2 space-y-1.5">
-              {stats.reasons.map(([reason, count]) => (
-                <li
-                  key={reason}
-                  className="relative overflow-hidden rounded-md border border-border bg-secondary/40 px-2.5 py-1.5"
-                >
-                  <span
-                    className="absolute inset-y-0 left-0"
-                    style={{
-                      width: `${maxReason ? (count / maxReason) * 100 : 0}%`,
-                      background: color,
-                      opacity: 0.14,
-                    }}
-                  />
-                  <div className="relative flex items-center justify-between gap-3 text-sm">
-                    <span className="truncate text-foreground">{reason}</span>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">{count}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-muted-foreground">Nenhuma pausa registrada</p>
-          )}
         </div>
 
         {/* Formatos */}

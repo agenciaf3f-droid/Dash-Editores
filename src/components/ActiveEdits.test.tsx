@@ -75,32 +75,27 @@ describe("ActiveEdits", () => {
     expect(screen.getByTestId("active-timer").textContent).toBe("17s");
   });
 
-  it("shows banked time and pause reason for a paused edit", () => {
+  it("shows banked time and pause time for a paused edit", () => {
     const edit = makeEdit({
       status: "paused",
       elapsed_seconds: 42,
       timer_started_at: null,
-      pauses: [{ reason: "almoço", paused_at: "2026-07-15T12:00:00Z", resumed_at: null }] as unknown as VideoEdit["pauses"],
+      pauses: [{ paused_at: "2026-07-15T12:00:00Z", resumed_at: null }] as unknown as VideoEdit["pauses"],
     });
     render(<ActiveEdits edits={[edit]} />);
     expect(screen.getByTestId("active-timer").textContent).toBe("42s");
     expect(screen.getByText("Pausado", { selector: "div" })).toBeInTheDocument();
-    expect(screen.getByText("almoço")).toBeInTheDocument();
+    expect(screen.getByText(/Pausado às \d{2}:\d{2}/)).toBeInTheDocument();
   });
 
-  it("blocks Pausar with an empty reason and passes the reason once filled", () => {
+  it("pauses immediately when Pausar is clicked (no reason dialog)", () => {
     render(<ActiveEdits edits={[makeEdit({ status: "editing", elapsed_seconds: 30 })]} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Pausar" }));
-    const confirm = screen.getByRole("button", { name: "Confirmar pausa" });
-    expect(confirm).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("Motivo"), { target: { value: "reunião" } });
-    expect(confirm).toBeEnabled();
-
-    fireEvent.click(confirm);
     expect(pauseMutate).toHaveBeenCalledTimes(1);
-    expect(pauseMutate.mock.calls[0][0]).toMatchObject({ id: "1", reason: "reunião", elapsedSeconds: 30 });
+    expect(pauseMutate.mock.calls[0][0]).toMatchObject({ id: "1", elapsedSeconds: 30 });
+    expect(pauseMutate.mock.calls[0][0].reason).toBeUndefined();
   });
 
   it("resumes a paused edit", () => {

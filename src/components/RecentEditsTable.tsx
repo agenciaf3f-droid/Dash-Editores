@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { FormatBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2, List, Film, ExternalLink } from "lucide-react";
 import { useDeleteVideoEdit } from "@/hooks/useVideoEdits";
@@ -92,9 +92,7 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Badge variant={edit.video_format === "VSL" ? "default" : "secondary"}>
-                            {edit.video_format}
-                          </Badge>
+                          <FormatBadge format={edit.video_format} />
                           {edit.quantity > 1 && (
                             <span className="text-sm font-medium text-muted-foreground">
                               ×{edit.quantity}
@@ -146,9 +144,7 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    <Badge variant={edit.video_format === "VSL" ? "default" : "secondary"}>
-                      {edit.video_format}
-                    </Badge>
+                    <FormatBadge format={edit.video_format} />
                     {edit.quantity > 1 && (
                       <span className="text-xs font-medium text-muted-foreground">×{edit.quantity}</span>
                     )}

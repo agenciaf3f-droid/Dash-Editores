@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import type { TooltipProps } from "recharts";
 import type { Tables } from "@/integrations/supabase/types";
+import { formatColor } from "@/lib/utils";
 import { EditorStatsModal } from "@/components/EditorStatsModal";
 import {
   startOfWeek,
@@ -73,8 +74,6 @@ export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardC
   ).map(([name, value]) => ({ name, value }));
 
   const formatTotal = byFormat.reduce((s, f) => s + f.value, 0);
-  const formatColor = (name: string) =>
-    COLORS[byFormat.findIndex((f) => f.name === name) % COLORS.length];
 
   const PieTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (!active || !payload || !payload.length) return null;
@@ -225,7 +224,7 @@ export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardC
                   onClick={() => setPeriod(p)}
                   className={`px-3 py-1 text-xs font-medium transition-colors ${
                     period === p
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground shadow-[0_0_16px_-4px_hsl(174_72%_50%/0.7)]"
                       : "bg-secondary text-secondary-foreground hover:bg-accent"
                   }`}
                 >
@@ -254,14 +253,15 @@ export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardC
                 {byEditorMode ? (
                   EDITORS.map((ed, i) => (
                     <linearGradient key={ed} id={`gradEditor${i}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={EDITOR_COLORS[ed]} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={EDITOR_COLORS[ed]} stopOpacity={0} />
+                      <stop offset="0%" stopColor={EDITOR_COLORS[ed]} stopOpacity={0.4} />
+                      <stop offset="95%" stopColor={EDITOR_COLORS[ed]} stopOpacity={0.02} />
                     </linearGradient>
                   ))
                 ) : (
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(174, 72%, 50%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(174, 72%, 50%)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="hsl(174, 72%, 55%)" stopOpacity={0.55} />
+                    <stop offset="55%" stopColor="hsl(174, 72%, 52%)" stopOpacity={0.22} />
+                    <stop offset="100%" stopColor="hsl(174, 72%, 50%)" stopOpacity={0.02} />
                   </linearGradient>
                 )}
               </defs>
@@ -277,6 +277,7 @@ export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardC
                       type="monotone"
                       dataKey={ed}
                       stroke={EDITOR_COLORS[ed]}
+                      strokeWidth={2}
                       fillOpacity={1}
                       fill={`url(#gradEditor${i})`}
                     />
@@ -284,7 +285,16 @@ export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardC
                   <Legend wrapperStyle={{ color: "hsl(210, 20%, 92%)" }} />
                 </>
               ) : (
-                <Area type="monotone" dataKey="count" stroke="hsl(174, 72%, 50%)" fillOpacity={1} fill="url(#colorCount)" name="Edições" />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="hsl(174, 72%, 55%)"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorCount)"
+                  name="Edições"
+                  activeDot={{ r: 4, strokeWidth: 0, fill: "hsl(174, 72%, 60%)" }}
+                />
               )}
             </AreaChart>
           </ResponsiveContainer>
@@ -314,8 +324,8 @@ export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardC
                       stroke="hsl(220, 18%, 10%)"
                       strokeWidth={2}
                     >
-                      {byFormat.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      {byFormat.map((f, i) => (
+                        <Cell key={i} fill={formatColor(f.name)} />
                       ))}
                     </Pie>
                     <Tooltip content={<PieTooltip />} />
@@ -329,9 +339,9 @@ export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardC
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
-                {byFormat.map((f, i) => (
+                {byFormat.map((f) => (
                   <div key={f.name} className="flex items-center gap-1.5 text-xs">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: formatColor(f.name) }} />
                     <span className="text-muted-foreground">{f.name}</span>
                     <span className="font-medium tabular-nums">{f.value}</span>
                   </div>
@@ -358,6 +368,17 @@ export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardC
           {byEditor.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={byEditor}>
+                <defs>
+                  {byEditor.map((_, i) => {
+                    const c = COLORS[i % COLORS.length];
+                    return (
+                      <linearGradient key={i} id={`barGrad${i}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={c} stopOpacity={1} />
+                        <stop offset="100%" stopColor={c} stopOpacity={0.45} />
+                      </linearGradient>
+                    );
+                  })}
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
                 <XAxis dataKey="name" stroke="hsl(215, 15%, 55%)" fontSize={12} />
                 <YAxis stroke="hsl(215, 15%, 55%)" fontSize={12} allowDecimals={false} />
@@ -372,7 +393,7 @@ export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardC
                   }}
                 >
                   {byEditor.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} className="cursor-pointer" />
+                    <Cell key={i} fill={`url(#barGrad${i})`} className="cursor-pointer" />
                   ))}
                 </Bar>
               </BarChart>

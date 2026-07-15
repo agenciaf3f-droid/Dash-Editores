@@ -46,10 +46,10 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <Card className="w-full max-w-sm border-border/60 shadow-xl">
+    <div className="app-shell min-h-screen flex items-center justify-center px-4">
+      <Card className="w-full max-w-sm border-border/60 shadow-2xl shadow-black/40">
         <CardHeader className="items-center space-y-3 text-center">
-          <div className="p-2.5 rounded-xl bg-primary/10 ring-1 ring-primary/20">
+          <div className="rounded-xl bg-primary/10 p-2.5 ring-1 ring-primary/25 shadow-[0_0_28px_-6px_hsl(174_72%_50%/0.85)]">
             <Film className="h-7 w-7 text-primary" />
           </div>
           <div className="space-y-1">
