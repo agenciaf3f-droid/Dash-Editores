@@ -164,7 +164,7 @@ const Index = () => {
               }}
             />
             <StatsCards edits={filteredEdits} rangeActive={rangeActive} rangeDays={rangeDays} />
-            <DashboardCharts edits={filteredEdits} from={from} to={to} />
+            <DashboardCharts edits={filteredEdits} from={from} to={to} isAdmin={isAdmin} />
             <RecentEditsTable edits={filteredEdits} />
           </>
         )}

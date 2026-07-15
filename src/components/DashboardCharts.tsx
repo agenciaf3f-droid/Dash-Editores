@@ -28,6 +28,7 @@ interface DashboardChartsProps {
   edits: VideoEdit[];
   from?: string;
   to?: string;
+  isAdmin?: boolean;
 }
 
 const COLORS = [
@@ -48,7 +49,7 @@ const EDITOR_COLORS: Record<string, string> = Object.fromEntries(
 
 type Period = "day" | "week" | "month";
 
-export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
+export function DashboardCharts({ edits, from, to, isAdmin = false }: DashboardChartsProps) {
   const [period, setPeriod] = useState<Period>("day");
   const [byEditorMode, setByEditorMode] = useState(false);
   const [selectedEditor, setSelectedEditor] = useState<string | null>(null);
@@ -232,16 +233,18 @@ export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => setByEditorMode(!byEditorMode)}
-              className={`px-3 py-1 text-xs font-medium rounded-lg border border-border transition-colors ${
-                byEditorMode
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-accent"
-              }`}
-            >
-              Por Editor
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setByEditorMode(!byEditorMode)}
+                className={`px-3 py-1 text-xs font-medium rounded-lg border border-border transition-colors ${
+                  byEditorMode
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-accent"
+                }`}
+              >
+                Por Editor
+              </button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -341,7 +344,9 @@ export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
         </CardContent>
       </Card>
 
-      {/* Bar chart - by editor */}
+      {isAdmin && (
+        <>
+      {/* Bar chart - by editor (admin only) */}
       <Card className="lg:col-span-3">
         <CardHeader>
           <CardTitle className="text-base">Edições por Editor</CardTitle>
@@ -388,6 +393,8 @@ export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
         }
         onClose={() => setSelectedEditor(null)}
       />
+        </>
+      )}
     </div>
   );
 }
