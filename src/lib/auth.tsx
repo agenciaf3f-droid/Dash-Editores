@@ -26,10 +26,12 @@ type AuthContextValue = {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  isRecovery: boolean;
   currentEditor: string;
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -37,6 +39,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRecovery, setIsRecovery] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -46,8 +49,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
+      if (event === "PASSWORD_RECOVERY") setIsRecovery(true);
     });
 
     return () => subscription.unsubscribe();
@@ -74,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       user,
       loading,
+      isRecovery,
       currentEditor,
       isAdmin,
       signIn: async (email, password) => {
@@ -83,8 +88,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut: async () => {
         await supabase.auth.signOut();
       },
+      updatePassword: async (password) => {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        setIsRecovery(false);
+      },
     }),
-    [session, user, loading, currentEditor, isAdmin]
+    [session, user, loading, isRecovery, currentEditor, isAdmin]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

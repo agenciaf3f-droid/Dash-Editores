@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { useVideoEdits } from "@/hooks/useVideoEdits";
 import { EditForm } from "@/components/EditForm";
@@ -7,16 +8,54 @@ import { StatsCards } from "@/components/StatsCards";
 import { DashboardCharts } from "@/components/DashboardCharts";
 import { RecentEditsTable } from "@/components/RecentEditsTable";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
-import { Film, LogOut } from "lucide-react";
+import { Film, LogOut, KeyRound } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth";
 
 const Index = () => {
   const { data: edits, isLoading } = useVideoEdits();
-  const { currentEditor, isAdmin, signOut } = useAuth();
+  const { currentEditor, isAdmin, signOut, updatePassword } = useAuth();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [pwOpen, setPwOpen] = useState(false);
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [savingPw, setSavingPw] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPw.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    setSavingPw(true);
+    try {
+      await updatePassword(newPw);
+      toast.success("Senha alterada com sucesso");
+      setPwOpen(false);
+      setNewPw("");
+      setConfirmPw("");
+    } catch {
+      toast.error("Não foi possível alterar a senha. Tente novamente.");
+    } finally {
+      setSavingPw(false);
+    }
+  };
 
   const rangeActive = from !== "" && to !== "";
   const allEdits = edits || [];
@@ -51,6 +90,48 @@ const Index = () => {
                 Editor: <span className="font-medium text-foreground">{currentEditor}</span>
               </span>
             )}
+            <Dialog open={pwOpen} onOpenChange={setPwOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <KeyRound className="h-4 w-4" />
+                  <span className="hidden sm:inline">Trocar senha</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>Trocar senha</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="change-new-password">Nova senha</Label>
+                    <Input
+                      id="change-new-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={newPw}
+                      onChange={(e) => setNewPw(e.target.value)}
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="change-confirm-password">Confirmar senha</Label>
+                    <Input
+                      id="change-confirm-password"
+                      type="password"
+                      autoComplete="new-password"
+                      value={confirmPw}
+                      onChange={(e) => setConfirmPw(e.target.value)}
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={savingPw} className="w-full">
+                      {savingPw ? "Salvando..." : "Salvar"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
             <Button variant="outline" size="sm" onClick={() => signOut()}>
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Sair</span>

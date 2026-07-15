@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 import { Film } from "lucide-react";
 
 export function Login() {
   const { signIn } = useAuth();
+  const [mode, setMode] = useState<"login" | "recover">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -26,6 +28,23 @@ export function Login() {
     }
   };
 
+  const handleRecover = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setSubmitting(true);
+    try {
+      await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin + "/redefinir-senha",
+      });
+    } catch {
+      // Ignore: never leak whether the email exists.
+    } finally {
+      // Always the same neutral message, success or failure.
+      toast.success("Se o email existir, enviamos um link para redefinir a senha");
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="w-full max-w-sm border-border/60 shadow-xl">
@@ -39,33 +58,69 @@ export function Login() {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="login-email">Email</Label>
-              <Input
-                id="login-email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="voce@f3f.com.br"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="login-password">Senha</Label>
-              <Input
-                id="login-password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-              />
-            </div>
-            <Button type="submit" disabled={submitting} className="w-full">
-              {submitting ? "Entrando..." : "Entrar"}
-            </Button>
-          </form>
+          {mode === "login" ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login-email">Email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="voce@f3f.com.br"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Senha</Label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </div>
+              <Button type="submit" disabled={submitting} className="w-full">
+                {submitting ? "Entrando..." : "Entrar"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setMode("recover")}
+                className="block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                Esqueci minha senha
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleRecover} className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Informe seu email e enviaremos um link para redefinir a senha.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="recover-email">Email</Label>
+                <Input
+                  id="recover-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="voce@f3f.com.br"
+                />
+              </div>
+              <Button type="submit" disabled={submitting} className="w-full">
+                {submitting ? "Enviando..." : "Enviar link"}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setMode("login")}
+                className="block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                Voltar ao login
+              </button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
