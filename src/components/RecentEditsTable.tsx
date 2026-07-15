@@ -69,7 +69,7 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
             <div className="hidden overflow-x-auto sm:block">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="hover:bg-transparent [&>th]:text-[11px] [&>th]:uppercase [&>th]:tracking-wider">
                     <TableHead>Data</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Nome do Vídeo</TableHead>

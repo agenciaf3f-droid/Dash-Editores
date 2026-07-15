@@ -1,0 +1,160 @@
+import { useMemo } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import type { Tables } from "@/integrations/supabase/types";
+import { formatDuration } from "@/lib/time";
+
+type VideoEdit = Tables<"video_edits">;
+
+interface EditorStatsModalProps {
+  editor: string | null;
+  edits: VideoEdit[];
+  color: string;
+  onClose: () => void;
+}
+
+// pauses is Json — normalize to an array of pause-shaped objects defensively.
+const asPauses = (p: VideoEdit["pauses"]): { reason?: unknown }[] =>
+  Array.isArray(p) ? (p as { reason?: unknown }[]) : [];
+
+export function EditorStatsModal({ editor, edits, color, onClose }: EditorStatsModalProps) {
+  const stats = useMemo(() => {
+    const rows = editor ? edits.filter((e) => e.editor_name === editor) : [];
+    // Legacy rows carry elapsed_seconds 0 / pauses [] — exclude from time & pause averages.
+    const timed = rows.filter((e) => e.elapsed_seconds > 0);
+
+    const videos = rows.reduce((s, e) => s + e.quantity, 0);
+
+    const avgTime = timed.length
+      ? formatDuration(Math.round(timed.reduce((s, e) => s + e.elapsed_seconds, 0) / timed.length))
+      : "—";
+
+    const avgPauses = timed.length
+      ? timed.reduce((s, e) => s + asPauses(e.pauses).length, 0) / timed.length
+      : null;
+
+    const reasonCounts: Record<string, number> = {};
+    rows.forEach((e) => {
+      asPauses(e.pauses).forEach((p) => {
+        const reason =
+          p && typeof p === "object" && typeof p.reason === "string" && p.reason.trim()
+            ? (p.reason as string).trim()
+            : "Sem motivo";
+        reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+      });
+    });
+    const reasons = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1]);
+
+    // Formatos: sum of quantity per video_format (matches the app's "Por Formato" pie
+    // and totals to "Vídeos editados").
+    const formatCounts: Record<string, number> = {};
+    rows.forEach((e) => {
+      formatCounts[e.video_format] = (formatCounts[e.video_format] || 0) + e.quantity;
+    });
+    const formats = Object.entries(formatCounts).sort((a, b) => b[1] - a[1]);
+
+    return { videos, avgTime, avgPauses, reasons, formats };
+  }, [editor, edits]);
+
+  const maxReason = stats.reasons.length ? stats.reasons[0][1] : 0;
+  const avgPausesLabel =
+    stats.avgPauses === null
+      ? "—"
+      : stats.avgPauses.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+  return (
+    <Dialog open={!!editor} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-2.5">
+            <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color }} />
+            <DialogTitle>{editor ?? ""}</DialogTitle>
+          </div>
+          <DialogDescription>Estatísticas do período selecionado</DialogDescription>
+        </DialogHeader>
+
+        {/* Hero — vídeos editados */}
+        <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+          <div
+            className="font-heading text-4xl font-bold leading-none tabular-nums"
+            style={{ color }}
+          >
+            {stats.videos}
+          </div>
+          <div className="mt-1.5 text-xs text-muted-foreground">Vídeos editados</div>
+        </div>
+
+        {/* Secondary stats */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+            <div className="font-heading text-xl font-semibold tabular-nums">{stats.avgTime}</div>
+            <div className="mt-1 text-xs text-muted-foreground">Tempo médio</div>
+          </div>
+          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+            <div className="font-heading text-xl font-semibold tabular-nums">{avgPausesLabel}</div>
+            <div className="mt-1 text-xs text-muted-foreground">Pausas / vídeo</div>
+          </div>
+        </div>
+
+        {/* Motivos de pausa */}
+        <div>
+          <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Motivos de pausa
+          </h4>
+          {stats.reasons.length ? (
+            <ul className="mt-2 space-y-1.5">
+              {stats.reasons.map(([reason, count]) => (
+                <li
+                  key={reason}
+                  className="relative overflow-hidden rounded-md border border-border bg-secondary/40 px-2.5 py-1.5"
+                >
+                  <span
+                    className="absolute inset-y-0 left-0"
+                    style={{
+                      width: `${maxReason ? (count / maxReason) * 100 : 0}%`,
+                      background: color,
+                      opacity: 0.14,
+                    }}
+                  />
+                  <div className="relative flex items-center justify-between gap-3 text-sm">
+                    <span className="truncate text-foreground">{reason}</span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">{count}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">Nenhuma pausa registrada</p>
+          )}
+        </div>
+
+        {/* Formatos */}
+        <div>
+          <h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Formatos
+          </h4>
+          {stats.formats.length ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {stats.formats.map(([name, count]) => (
+                <span
+                  key={name}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/50 px-2.5 py-1 text-xs"
+                >
+                  <span className="text-foreground">{name}</span>
+                  <span className="font-medium tabular-nums text-muted-foreground">{count}</span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">Sem dados</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

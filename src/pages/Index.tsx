@@ -31,12 +31,12 @@ const Index = () => {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 px-4 py-4 backdrop-blur-md sm:px-6">
         <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
+          <div className="p-2 rounded-lg bg-primary/10 ring-1 ring-primary/20">
             <Film className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-heading font-bold">Controle de Edição</h1>
-            <p className="text-sm text-muted-foreground">Agência F3F</p>
+            <h1 className="text-xl font-heading font-bold tracking-tight">Controle de Edição</h1>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Agência F3F</p>
           </div>
         </div>
       </header>
@@ -45,7 +45,7 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6 sm:px-6 sm:py-8 sm:space-y-8">
         {isLoading ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {[...Array(4)].map((_, i) => (
                 <Skeleton key={i} className="h-24 rounded-xl" />
               ))}
@@ -54,6 +54,8 @@ const Index = () => {
           </div>
         ) : (
           <>
+            <EditForm />
+            <ActiveEdits edits={activeEdits} />
             <DateRangeFilter
               from={from}
               to={to}
@@ -62,8 +64,6 @@ const Index = () => {
                 setTo(t);
               }}
             />
-            <EditForm />
-            <ActiveEdits edits={activeEdits} />
             <StatsCards edits={filteredEdits} rangeActive={rangeActive} rangeDays={rangeDays} />
             <DashboardCharts edits={filteredEdits} from={from} to={to} />
             <RecentEditsTable edits={filteredEdits} />

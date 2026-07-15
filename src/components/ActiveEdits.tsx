@@ -108,7 +108,10 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
   };
 
   return (
-    <Card data-testid="active-edit-card">
+    <Card
+      data-testid="active-edit-card"
+      className={`border-l-2 ${isEditing ? "border-l-primary" : "border-l-muted-foreground/25"}`}
+    >
       <CardContent className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -119,13 +122,26 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Badge variant="secondary">{edit.video_format}</Badge>
-            <Badge variant={isEditing ? "default" : "outline"}>
+            <Badge
+              variant="outline"
+              className={
+                isEditing
+                  ? "gap-1.5 border-primary/30 bg-primary/10 text-primary"
+                  : "text-muted-foreground"
+              }
+            >
+              {isEditing && (
+                <span className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-pulse" />
+              )}
               {isEditing ? "Editando" : "Pausado"}
             </Badge>
           </div>
         </div>
 
-        <div className="flex items-baseline gap-2">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Tempo
+          </p>
           <span
             data-testid="active-timer"
             className="font-heading text-3xl font-bold tabular-nums tracking-tight"
@@ -135,9 +151,10 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
         </div>
 
         {lastReason && (
-          <p className="truncate text-xs text-muted-foreground">
-            Pausado: <span className="text-foreground">{lastReason}</span>
-          </p>
+          <div className="flex items-center gap-2 rounded-md bg-secondary/60 px-2.5 py-1.5 text-xs">
+            <PauseIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate text-foreground">{lastReason}</span>
+          </div>
         )}
 
         <div className="flex flex-wrap gap-2">

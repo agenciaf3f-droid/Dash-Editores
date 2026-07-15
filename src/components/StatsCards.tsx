@@ -25,25 +25,29 @@ export function StatsCards({ edits, rangeActive, rangeDays = 0 }: StatsCardsProp
     .reduce((sum, e) => sum + e.quantity, 0);
 
   const stats = [
-    { label: "Total de Edições", value: totalEdits, icon: Film, color: "text-primary" },
-    { label: "Média por Editor", value: avgPerEditor, icon: Users, color: "text-chart-2" },
-    { label: "Clientes", value: uniqueClients, icon: TrendingUp, color: "text-chart-3" },
+    { label: "Total de Edições", value: totalEdits, icon: Film, tint: "bg-primary/10 text-primary" },
+    { label: "Média por Editor", value: avgPerEditor, icon: Users, tint: "bg-chart-2/10 text-chart-2" },
+    { label: "Clientes", value: uniqueClients, icon: TrendingUp, tint: "bg-chart-3/10 text-chart-3" },
     rangeActive
-      ? { label: "Dias no período", value: rangeDays, icon: Calendar, color: "text-chart-4" }
-      : { label: "Este Mês", value: thisMonth, icon: Calendar, color: "text-chart-4" },
+      ? { label: "Dias no período", value: rangeDays, icon: Calendar, tint: "bg-chart-4/10 text-chart-4" }
+      : { label: "Este Mês", value: thisMonth, icon: Calendar, tint: "bg-chart-4/10 text-chart-4" },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {stats.map((stat) => (
         <Card key={stat.label} className="transition-colors hover:border-primary/30">
           <CardContent className="flex items-center gap-3 p-4 sm:gap-4 sm:p-5">
-            <div className={`shrink-0 rounded-lg bg-secondary p-3 ${stat.color}`}>
+            <div className={`shrink-0 rounded-lg p-3 ${stat.tint}`}>
               <stat.icon className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="font-heading text-2xl font-bold tabular-nums tracking-tight">{stat.value}</p>
-              <p className="text-sm leading-tight text-muted-foreground">{stat.label}</p>
+              <p className="font-heading text-2xl font-bold leading-none tabular-nums tracking-tight sm:text-3xl">
+                {stat.value}
+              </p>
+              <p className="mt-1.5 text-[11px] font-medium uppercase leading-tight tracking-wider text-muted-foreground">
+                {stat.label}
+              </p>
             </div>
           </CardContent>
         </Card>

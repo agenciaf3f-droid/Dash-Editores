@@ -104,6 +104,7 @@ export function EditForm() {
               <SelectContent>
                 <SelectItem value="Lucas">Lucas</SelectItem>
                 <SelectItem value="Damião">Damião</SelectItem>
+                <SelectItem value="Teste">Teste</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import type { TooltipProps } from "recharts";
 import type { Tables } from "@/integrations/supabase/types";
+import { EditorStatsModal } from "@/components/EditorStatsModal";
 import {
   startOfWeek,
   startOfMonth,
@@ -39,23 +40,18 @@ const COLORS = [
   "hsl(20, 85%, 58%)",
 ];
 
-const EDITOR_COLORS: Record<string, string> = {
-  Lucas: "hsl(174, 72%, 50%)",
-  Damião: "hsl(262, 60%, 58%)",
-};
+const EDITORS = ["Lucas", "Damião", "Teste"];
+
+const EDITOR_COLORS: Record<string, string> = Object.fromEntries(
+  EDITORS.map((ed, i) => [ed, COLORS[i % COLORS.length]])
+);
 
 type Period = "day" | "week" | "month";
-
-const tooltipStyle = {
-  backgroundColor: "hsl(220, 18%, 12%)",
-  border: "1px solid hsl(220, 14%, 18%)",
-  borderRadius: "8px",
-  color: "hsl(210, 20%, 92%)",
-};
 
 export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
   const [period, setPeriod] = useState<Period>("day");
   const [byEditorMode, setByEditorMode] = useState(false);
+  const [selectedEditor, setSelectedEditor] = useState<string | null>(null);
 
   const rangeActive = !!from && !!to && from <= to;
 
@@ -96,16 +92,61 @@ export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
     );
   };
 
+  // Bar color mirrors the Cell fills (same order as byEditor).
+  const barColor = (name: string) =>
+    COLORS[byEditor.findIndex((e) => e.name === name) % COLORS.length];
+
+  const BarTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+    if (!active || !payload || !payload.length) return null;
+    const { name, count } = payload[0].payload as { name: string; count: number };
+    return (
+      <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full" style={{ background: barColor(name) }} />
+          <span className="font-medium text-foreground">{name}</span>
+        </div>
+        <p className="mt-1 tabular-nums text-muted-foreground">
+          {count} {count === 1 ? "edição" : "edições"}
+        </p>
+      </div>
+    );
+  };
+
+  const AreaTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+    if (!active || !payload || !payload.length) return null;
+    // In per-editor mode, hide zero-value series so a hover doesn't list idle editors.
+    const rows = payload.filter((p) => !byEditorMode || Number(p.value) > 0);
+    if (!rows.length) return null;
+    return (
+      <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
+        <p className="mb-1.5 font-medium text-foreground">{label}</p>
+        <div className="space-y-1">
+          {rows.map((p) => (
+            <div key={String(p.dataKey)} className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ background: EDITOR_COLORS[String(p.name)] ?? "hsl(174, 72%, 50%)" }}
+                />
+                {p.name}
+              </span>
+              <span className="font-medium tabular-nums text-foreground">{p.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   // Timeline data based on period and editor grouping
   const timelineData = useMemo(() => {
     const now = new Date();
-    const editors = ["Lucas", "Damião"];
 
     // Build one chart row from a label and the edits falling in that bucket.
     const makeRow = (label: string, bucketEdits: VideoEdit[]) => {
       if (byEditorMode) {
         const row: Record<string, string | number> = { date: label };
-        editors.forEach((ed) => {
+        EDITORS.forEach((ed) => {
           row[ed] = bucketEdits
             .filter((e) => e.editor_name === ed)
             .reduce((s, e) => s + e.quantity, 0);
@@ -208,16 +249,12 @@ export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
             <AreaChart data={timelineData}>
               <defs>
                 {byEditorMode ? (
-                  <>
-                    <linearGradient id="colorLucas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={EDITOR_COLORS.Lucas} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={EDITOR_COLORS.Lucas} stopOpacity={0} />
+                  EDITORS.map((ed, i) => (
+                    <linearGradient key={ed} id={`gradEditor${i}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={EDITOR_COLORS[ed]} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={EDITOR_COLORS[ed]} stopOpacity={0} />
                     </linearGradient>
-                    <linearGradient id="colorDamiao" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={EDITOR_COLORS.Damião} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={EDITOR_COLORS.Damião} stopOpacity={0} />
-                    </linearGradient>
-                  </>
+                  ))
                 ) : (
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="hsl(174, 72%, 50%)" stopOpacity={0.3} />
@@ -228,11 +265,19 @@ export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
               <XAxis dataKey="date" stroke="hsl(215, 15%, 55%)" fontSize={12} />
               <YAxis stroke="hsl(215, 15%, 55%)" fontSize={12} allowDecimals={false} />
-              <Tooltip contentStyle={tooltipStyle} />
+              <Tooltip content={<AreaTooltip />} />
               {byEditorMode ? (
                 <>
-                  <Area type="monotone" dataKey="Lucas" stroke={EDITOR_COLORS.Lucas} fillOpacity={1} fill="url(#colorLucas)" />
-                  <Area type="monotone" dataKey="Damião" stroke={EDITOR_COLORS.Damião} fillOpacity={1} fill="url(#colorDamiao)" />
+                  {EDITORS.map((ed, i) => (
+                    <Area
+                      key={ed}
+                      type="monotone"
+                      dataKey={ed}
+                      stroke={EDITOR_COLORS[ed]}
+                      fillOpacity={1}
+                      fill={`url(#gradEditor${i})`}
+                    />
+                  ))}
                   <Legend wrapperStyle={{ color: "hsl(210, 20%, 92%)" }} />
                 </>
               ) : (
@@ -300,6 +345,9 @@ export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
       <Card className="lg:col-span-3">
         <CardHeader>
           <CardTitle className="text-base">Edições por Editor</CardTitle>
+          {byEditor.length > 0 && (
+            <p className="text-xs text-muted-foreground">Clique em um editor para ver os detalhes</p>
+          )}
         </CardHeader>
         <CardContent>
           {byEditor.length > 0 ? (
@@ -308,10 +356,18 @@ export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 14%, 18%)" />
                 <XAxis dataKey="name" stroke="hsl(215, 15%, 55%)" fontSize={12} />
                 <YAxis stroke="hsl(215, 15%, 55%)" fontSize={12} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="count" name="Edições" radius={[6, 6, 0, 0]}>
+                <Tooltip content={<BarTooltip />} cursor={{ fill: "hsl(220, 14%, 14%)" }} />
+                <Bar
+                  dataKey="count"
+                  name="Edições"
+                  radius={[6, 6, 0, 0]}
+                  onClick={(_, index) => {
+                    const e = byEditor[index];
+                    if (e) setSelectedEditor(e.name);
+                  }}
+                >
                   {byEditor.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} className="cursor-pointer" />
                   ))}
                 </Bar>
               </BarChart>
@@ -321,6 +377,17 @@ export function DashboardCharts({ edits, from, to }: DashboardChartsProps) {
           )}
         </CardContent>
       </Card>
+
+      <EditorStatsModal
+        editor={selectedEditor}
+        edits={edits}
+        color={
+          selectedEditor
+            ? COLORS[byEditor.findIndex((e) => e.name === selectedEditor) % COLORS.length]
+            : COLORS[0]
+        }
+        onClose={() => setSelectedEditor(null)}
+      />
     </div>
   );
 }
