@@ -14,18 +14,20 @@ import { supabase } from "@/integrations/supabase/client";
  */
 const EDITOR_BY_EMAIL: Record<string, string> = {
   "agenciaf3f@gmail.com": "Admin",
-  // Adicione os editores conforme criar as contas — o valor deve ser o
-  // nome EXATO do editor_name no banco ("Lucas", "Damião", "Teste"):
-  // "lucas@dominio": "Lucas",
-  // "damiao@dominio": "Damião",
-  // "teste@dominio": "Teste",
+  "iriacridesdamiaopinhas@gmail.com": "Damião",
+  "lucasmaiasct2187@gmail.com": "Lucas",
+  // Novos editores: "email(minusculo)": "NomeExatoNoBanco"
 };
+
+// Emails admin: veem TUDO. Editores veem só as próprias edições.
+const ADMIN_EMAILS = new Set(["agenciaf3f@gmail.com"]);
 
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   loading: boolean;
   currentEditor: string;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -57,10 +59,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return "";
     const metaName = user.user_metadata?.name as string | undefined;
     if (metaName) return metaName;
-    const email = user.email ?? "";
+    const email = (user.email ?? "").toLowerCase();
     if (email && EDITOR_BY_EMAIL[email]) return EDITOR_BY_EMAIL[email];
     return email.split("@")[0] ?? "";
   }, [user]);
+
+  const isAdmin = useMemo(
+    () => (user?.email ? ADMIN_EMAILS.has(user.email.toLowerCase()) : false),
+    [user]
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -68,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       loading,
       currentEditor,
+      isAdmin,
       signIn: async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -76,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await supabase.auth.signOut();
       },
     }),
-    [session, user, loading, currentEditor]
+    [session, user, loading, currentEditor, isAdmin]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

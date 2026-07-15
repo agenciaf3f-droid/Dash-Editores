@@ -14,16 +14,18 @@ import { useAuth } from "@/lib/auth";
 
 const Index = () => {
   const { data: edits, isLoading } = useVideoEdits();
-  const { currentEditor, signOut } = useAuth();
+  const { currentEditor, isAdmin, signOut } = useAuth();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
   const rangeActive = from !== "" && to !== "";
   const allEdits = edits || [];
-  const activeEdits = allEdits.filter(
-    (e) => (e.status ?? "done") !== "done" && e.editor_name === currentEditor
-  );
-  const doneEdits = allEdits.filter((e) => (e.status ?? "done") === "done");
+  // Admin vê tudo; editor vê só as próprias edições.
+  const scopedEdits = isAdmin
+    ? allEdits
+    : allEdits.filter((e) => e.editor_name === currentEditor);
+  const activeEdits = scopedEdits.filter((e) => (e.status ?? "done") !== "done");
+  const doneEdits = scopedEdits.filter((e) => (e.status ?? "done") === "done");
   const filteredEdits = rangeActive
     ? doneEdits.filter((e) => e.edit_date >= from && e.edit_date <= to)
     : doneEdits;
