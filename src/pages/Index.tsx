@@ -4,6 +4,7 @@ import { differenceInCalendarDays, parseISO } from "date-fns";
 import { useVideoEdits } from "@/hooks/useVideoEdits";
 import { EditForm } from "@/components/EditForm";
 import { ActiveEdits } from "@/components/ActiveEdits";
+import { AwaitingLink } from "@/components/AwaitingLink";
 import { StatsCards } from "@/components/StatsCards";
 import { DashboardCharts } from "@/components/DashboardCharts";
 import { RecentEditsTable } from "@/components/RecentEditsTable";
@@ -64,7 +65,10 @@ const Index = () => {
   const scopedEdits = isAdmin
     ? allEdits
     : allEdits.filter((e) => e.editor_name === currentEditor);
-  const activeEdits = scopedEdits.filter((e) => (e.status ?? "done") !== "done");
+  const activeEdits = scopedEdits.filter(
+    (e) => e.status === "editing" || e.status === "paused",
+  );
+  const awaitingEdits = scopedEdits.filter((e) => e.status === "awaiting_link");
   const doneEdits = scopedEdits.filter((e) => (e.status ?? "done") === "done");
   const filteredEdits = rangeActive
     ? doneEdits.filter((e) => e.edit_date >= from && e.edit_date <= to)
@@ -157,6 +161,7 @@ const Index = () => {
           <>
             <EditForm />
             <ActiveEdits edits={activeEdits} />
+            <AwaitingLink edits={awaitingEdits} />
             <DateRangeFilter
               from={from}
               to={to}

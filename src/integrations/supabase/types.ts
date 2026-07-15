@@ -40,6 +40,7 @@ export type Database = {
           editor_name: string
           edited_link: string | null
           elapsed_seconds: number
+          finished_at: string | null
           id: string
           pauses: Json
           quantity: number
@@ -56,6 +57,7 @@ export type Database = {
           editor_name: string
           edited_link?: string | null
           elapsed_seconds?: number
+          finished_at?: string | null
           id?: string
           pauses?: Json
           quantity?: number
@@ -72,6 +74,7 @@ export type Database = {
           editor_name?: string
           edited_link?: string | null
           elapsed_seconds?: number
+          finished_at?: string | null
           id?: string
           pauses?: Json
           quantity?: number

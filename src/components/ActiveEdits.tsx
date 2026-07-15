@@ -2,18 +2,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge, FormatBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Pause as PauseIcon, Play, CheckCircle2, Timer } from "lucide-react";
-import { usePauseEdit, useResumeEdit, useFinishEdit, type Pause } from "@/hooks/useVideoEdits";
+import { usePauseEdit, useResumeEdit, useFinishEditing, type Pause } from "@/hooks/useVideoEdits";
 import { formatDuration, brTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
@@ -45,7 +35,7 @@ export function ActiveEdits({ edits }: ActiveEditsProps) {
 function ActiveEditCard({ edit }: { edit: VideoEdit }) {
   const pauseEdit = usePauseEdit();
   const resumeEdit = useResumeEdit();
-  const finishEdit = useFinishEdit();
+  const finishEditing = useFinishEditing();
 
   const isEditing = edit.status === "editing";
   const pauses = (edit.pauses as unknown as Pause[]) ?? [];
@@ -80,20 +70,9 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
     resumeEdit.mutate({ id: edit.id, pauses });
   };
 
-  // Finish dialog
-  const [finishOpen, setFinishOpen] = useState(false);
-  const [editedLink, setEditedLink] = useState("");
-  const handleConfirmFinish = () => {
-    if (!editedLink.trim()) return;
-    // Close synchronously first: finishing removes this edit from the active list,
-    // which unmounts this card. Closing before the refetch avoids the pointer-events bug.
-    setFinishOpen(false);
-    finishEdit.mutate({
-      id: edit.id,
-      editedLink: editedLink.trim(),
-      elapsedSeconds: Math.round(elapsed),
-    });
-    setEditedLink("");
+  // "Feito": trava o timer no valor atual e move para "Aguardando Link" (sem dialog).
+  const handleFinishEditing = () => {
+    finishEditing.mutate({ id: edit.id, elapsedSeconds: Math.round(elapsed) });
   };
 
   return (
@@ -176,59 +155,20 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
           )}
           <Button
             size="sm"
-            onClick={() => setFinishOpen(true)}
-            disabled={!isEditing}
-            title={!isEditing ? "Retome a edição para finalizar" : undefined}
+            onClick={handleFinishEditing}
+            disabled={!isEditing || finishEditing.isPending}
+            title={!isEditing ? "Retome a edição para concluir" : undefined}
           >
             <CheckCircle2 className="mr-1.5 h-4 w-4" />
-            Finalizar
+            Feito
           </Button>
           {!isEditing && (
             <span className="w-full text-[11px] text-muted-foreground">
-              Retome a edição para finalizar.
+              Retome a edição para concluir.
             </span>
           )}
         </div>
       </CardContent>
-
-      {/* Finish dialog — asks if ready, requires the edited link */}
-      <Dialog open={finishOpen} onOpenChange={setFinishOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Vídeo está pronto?</DialogTitle>
-            <DialogDescription>
-              Informe o link do vídeo editado para finalizar. Se ainda não estiver pronto, feche
-              e continue depois.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor={`edited-link-${edit.id}`}>Link do Vídeo Editado</Label>
-            <Input
-              id={`edited-link-${edit.id}`}
-              value={editedLink}
-              onChange={(e) => setEditedLink(e.target.value)}
-              placeholder="https://..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleConfirmFinish();
-                }
-              }}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFinishOpen(false)}>
-              Não pronto
-            </Button>
-            <Button
-              onClick={handleConfirmFinish}
-              disabled={!editedLink.trim() || finishEdit.isPending}
-            >
-              Sim, pronto
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }

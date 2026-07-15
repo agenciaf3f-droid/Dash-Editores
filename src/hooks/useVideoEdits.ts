@@ -131,24 +131,48 @@ export function useResumeEdit() {
   });
 }
 
-export function useFinishEdit() {
+// "Feito": trava o cronômetro (tempo congelado), grava o timestamp de conclusão
+// e move a edição para a fila "Aguardando Link". NÃO registra pausa.
+export function useFinishEditing() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
       id,
-      editedLink,
       elapsedSeconds,
     }: {
       id: string;
-      editedLink: string;
       elapsedSeconds: number;
     }) => {
       const { error } = await supabase
         .from("video_edits")
         .update({
-          status: "done",
+          status: "awaiting_link",
           elapsed_seconds: elapsedSeconds,
           timer_started_at: null,
+          finished_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["video-edits"] });
+      toast.success("Edição concluída — adicione o link");
+    },
+    onError: () => {
+      toast.error("Erro ao concluir edição");
+    },
+  });
+}
+
+// "Adicionar Link": informa o link do vídeo editado → vira `done` e passa a contar.
+export function useAddEditedLink() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, editedLink }: { id: string; editedLink: string }) => {
+      const { error } = await supabase
+        .from("video_edits")
+        .update({
+          status: "done",
           edited_link: editedLink,
         })
         .eq("id", id);
@@ -156,10 +180,36 @@ export function useFinishEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["video-edits"] });
-      toast.success("Edição finalizada!");
+      toast.success("Vídeo finalizado!");
     },
     onError: () => {
-      toast.error("Erro ao finalizar edição");
+      toast.error("Erro ao adicionar link");
+    },
+  });
+}
+
+// "Voltar ao timer": reabre uma edição de `awaiting_link` para `editing`.
+// O timer continua do valor congelado (elapsed_seconds intacto).
+export function useReopenEditing() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      const { error } = await supabase
+        .from("video_edits")
+        .update({
+          status: "editing",
+          timer_started_at: new Date().toISOString(),
+          finished_at: null,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["video-edits"] });
+      toast.success("Edição reaberta");
+    },
+    onError: () => {
+      toast.error("Erro ao reabrir edição");
     },
   });
 }

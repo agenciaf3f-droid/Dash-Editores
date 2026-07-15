@@ -10,7 +10,7 @@ const finishMutate = vi.fn();
 vi.mock("@/hooks/useVideoEdits", () => ({
   usePauseEdit: () => ({ mutate: pauseMutate, isPending: false }),
   useResumeEdit: () => ({ mutate: resumeMutate, isPending: false }),
-  useFinishEdit: () => ({ mutate: finishMutate, isPending: false }),
+  useFinishEditing: () => ({ mutate: finishMutate, isPending: false }),
 }));
 
 // Radix relies on a few DOM APIs jsdom lacks.
@@ -31,6 +31,7 @@ const makeEdit = (over: Partial<VideoEdit>): VideoEdit => ({
   editor_name: "Lucas",
   edited_link: null,
   elapsed_seconds: 0,
+  finished_at: null,
   quantity: 1,
   raw_link: null,
   status: "editing",
@@ -105,26 +106,23 @@ describe("ActiveEdits", () => {
     expect(resumeMutate.mock.calls[0][0]).toMatchObject({ id: "1" });
   });
 
-  it("blocks Finalizar until an edited link is provided, then finishes", () => {
+  it("freezes the timer immediately when Feito is clicked (no dialog, no link)", () => {
     render(<ActiveEdits edits={[makeEdit({ status: "editing", elapsed_seconds: 99 })]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Finalizar" }));
-    expect(screen.getByText("Vídeo está pronto?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Feito" }));
 
-    const confirm = screen.getByRole("button", { name: "Sim, pronto" });
-    expect(confirm).toBeDisabled();
-
-    fireEvent.change(screen.getByLabelText("Link do Vídeo Editado"), {
-      target: { value: "https://example.com/edited" },
-    });
-    expect(confirm).toBeEnabled();
-
-    fireEvent.click(confirm);
     expect(finishMutate).toHaveBeenCalledTimes(1);
     expect(finishMutate.mock.calls[0][0]).toMatchObject({
       id: "1",
-      editedLink: "https://example.com/edited",
       elapsedSeconds: 99,
     });
+    // No edited link is requested at this step.
+    expect(finishMutate.mock.calls[0][0].editedLink).toBeUndefined();
+  });
+
+  it("disables Feito while paused", () => {
+    render(<ActiveEdits edits={[makeEdit({ status: "paused", elapsed_seconds: 20, timer_started_at: null })]} />);
+    expect(screen.getByRole("button", { name: "Feito" })).toBeDisabled();
+    expect(finishMutate).not.toHaveBeenCalled();
   });
 });

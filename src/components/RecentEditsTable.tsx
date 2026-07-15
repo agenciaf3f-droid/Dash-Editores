@@ -103,7 +103,7 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                           {format(new Date(edit.edit_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })}
                         </span>
                         <span className="block text-[11px] text-muted-foreground/70">
-                          {brTime(edit.created_at)}
+                          {brTime(edit.finished_at ?? edit.created_at)}
                         </span>
                       </TableCell>
                       <TableCell className="font-medium">{edit.client_name}</TableCell>
@@ -176,7 +176,7 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                       <p className="truncate text-xs text-muted-foreground">{edit.video_name}</p>
                     )}
                     <p className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
-                      {format(new Date(edit.edit_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })} {brTime(edit.created_at)} · {edit.editor_name}
+                      {format(new Date(edit.edit_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })} {brTime(edit.finished_at ?? edit.created_at)} · {edit.editor_name}
                       {edit.elapsed_seconds ? ` · ${formatDuration(edit.elapsed_seconds)}` : ""}
                     </p>
                     {pauseInfo(edit).intervals.length > 0 && (
