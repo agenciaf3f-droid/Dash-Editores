@@ -19,6 +19,20 @@ export function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
   const presets: { label: string; apply: () => void }[] = [
     { label: "Tudo", apply: () => onChange("", "") },
     {
+      label: "Hoje",
+      apply: () => {
+        const today = iso(new Date());
+        onChange(today, today);
+      },
+    },
+    {
+      label: "Ontem",
+      apply: () => {
+        const y = iso(subDays(new Date(), 1));
+        onChange(y, y);
+      },
+    },
+    {
       label: "7 dias",
       apply: () => {
         const today = new Date();
