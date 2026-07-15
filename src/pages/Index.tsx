@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { InviteEditorDialog } from "@/components/InviteEditorDialog";
 import { useAuth } from "@/lib/auth";
 
 const Index = () => {
@@ -90,6 +91,7 @@ const Index = () => {
                 Editor: <span className="font-medium text-foreground">{currentEditor}</span>
               </span>
             )}
+            {isAdmin && <InviteEditorDialog />}
             <Dialog open={pwOpen} onOpenChange={setPwOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">

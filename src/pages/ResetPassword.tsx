@@ -17,7 +17,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             <Film className="h-7 w-7 text-primary" />
           </div>
           <div className="space-y-1">
-            <h1 className="text-2xl font-heading font-bold tracking-tight">Redefinir senha</h1>
+            <h1 className="text-2xl font-heading font-bold tracking-tight">Definir senha</h1>
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Agência F3F</p>
           </div>
         </CardHeader>
@@ -47,10 +47,10 @@ const ResetPassword = () => {
     setSubmitting(true);
     try {
       await updatePassword(password);
-      toast.success("Senha redefinida com sucesso");
+      toast.success("Senha definida com sucesso");
       navigate("/", { replace: true });
     } catch {
-      toast.error("Não foi possível redefinir a senha. Tente novamente.");
+      toast.error("Não foi possível salvar a senha. Tente novamente.");
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +69,7 @@ const ResetPassword = () => {
       <Shell>
         <div className="space-y-4 text-center">
           <p className="text-sm text-muted-foreground">
-            Link inválido ou expirado. Solicite um novo link para redefinir a senha.
+            Link inválido ou expirado. Solicite um novo link para definir sua senha.
           </p>
           <Link
             to="/"
