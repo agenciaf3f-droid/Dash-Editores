@@ -1,0 +1,6 @@
+/supabase/
+*.sql
+migrate_controle_edicao_schema.sql
+playwright.config.ts
+playwright-fixture.ts
+src/test/
