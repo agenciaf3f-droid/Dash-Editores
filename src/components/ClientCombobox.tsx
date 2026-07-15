@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Pencil, Trash2, X } from "lucide-react";
+import { Check, ChevronsUpDown, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,6 +10,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from "@/components/ui/command";
 import { useClients, useAddClient, useUpdateClient, useDeleteClient } from "@/hooks/useClients";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ export function ClientCombobox({ value, onChange }: ClientComboboxProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const editInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data: clients } = useClients();
   const addClient = useAddClient();
@@ -104,12 +106,31 @@ export function ClientCombobox({ value, onChange }: ClientComboboxProps) {
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Buscar cliente..."
+            ref={searchInputRef}
+            placeholder="Digite para buscar ou criar"
             value={query}
             onValueChange={setQuery}
           />
           <CommandList>
             <CommandEmpty>Nenhum cliente.</CommandEmpty>
+            {!trimmed && (
+              <>
+                <CommandGroup>
+                  <CommandItem
+                    value="__new_client__"
+                    onSelect={() => searchInputRef.current?.focus()}
+                    className="font-medium text-primary"
+                  >
+                    <Plus className="mr-2 h-4 w-4 shrink-0" />
+                    <span>Novo cliente</span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      digite o nome
+                    </span>
+                  </CommandItem>
+                </CommandGroup>
+                {filtered.length > 0 && <CommandSeparator />}
+              </>
+            )}
             <CommandGroup>
               {filtered.map((c) =>
                 editingId === c.id ? (
@@ -201,8 +222,13 @@ export function ClientCombobox({ value, onChange }: ClientComboboxProps) {
                 )
               )}
               {trimmed && !exactMatch && (
-                <CommandItem value={`create-${trimmed}`} onSelect={handleCreate}>
-                  Criar "{trimmed}"
+                <CommandItem
+                  value={`create-${trimmed}`}
+                  onSelect={handleCreate}
+                  className="font-medium text-primary"
+                >
+                  <Plus className="mr-2 h-4 w-4 shrink-0" />
+                  <span className="truncate">Criar "{trimmed}"</span>
                 </CommandItem>
               )}
             </CommandGroup>

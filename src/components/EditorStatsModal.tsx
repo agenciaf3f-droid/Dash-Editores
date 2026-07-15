@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,6 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDuration } from "@/lib/time";
 
@@ -23,8 +24,24 @@ const asPauses = (p: VideoEdit["pauses"]): { reason?: unknown }[] =>
   Array.isArray(p) ? (p as { reason?: unknown }[]) : [];
 
 export function EditorStatsModal({ editor, edits, color, onClose }: EditorStatsModalProps) {
+  // Modal-local date range narrowing (independent of the dashboard period).
+  // Empty = fall back to the incoming (dashboard-filtered) edits.
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  // Reset the local range whenever the modal opens for a different editor.
+  useEffect(() => {
+    setFrom("");
+    setTo("");
+  }, [editor]);
+
+  const rangeActive = !!from || !!to;
+
   const stats = useMemo(() => {
-    const rows = editor ? edits.filter((e) => e.editor_name === editor) : [];
+    let rows = editor ? edits.filter((e) => e.editor_name === editor) : [];
+    // Narrow to the modal range on top of the incoming period (ISO string compare).
+    if (from) rows = rows.filter((e) => e.edit_date >= from);
+    if (to) rows = rows.filter((e) => e.edit_date <= to);
     // Legacy rows carry elapsed_seconds 0 / pauses [] — exclude from time & pause averages.
     const timed = rows.filter((e) => e.elapsed_seconds > 0);
 
@@ -59,7 +76,7 @@ export function EditorStatsModal({ editor, edits, color, onClose }: EditorStatsM
     const formats = Object.entries(formatCounts).sort((a, b) => b[1] - a[1]);
 
     return { videos, avgTime, avgPauses, reasons, formats };
-  }, [editor, edits]);
+  }, [editor, edits, from, to]);
 
   const maxReason = stats.reasons.length ? stats.reasons[0][1] : 0;
   const avgPausesLabel =
@@ -75,8 +92,53 @@ export function EditorStatsModal({ editor, edits, color, onClose }: EditorStatsM
             <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color }} />
             <DialogTitle>{editor ?? ""}</DialogTitle>
           </div>
-          <DialogDescription>Estatísticas do período selecionado</DialogDescription>
+          <DialogDescription>
+            {rangeActive ? "Estatísticas do período personalizado" : "Estatísticas do período selecionado"}
+          </DialogDescription>
         </DialogHeader>
+
+        {/* Filtro de período (De / Até) — independente do filtro do dashboard */}
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Período
+            </span>
+            {rangeActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFrom("");
+                  setTo("");
+                }}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-[11px] text-muted-foreground">De</span>
+              <Input
+                type="date"
+                value={from}
+                max={to || undefined}
+                onChange={(e) => setFrom(e.target.value)}
+                className="h-8 min-w-0 text-xs"
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-[11px] text-muted-foreground">Até</span>
+              <Input
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(e) => setTo(e.target.value)}
+                className="h-8 min-w-0 text-xs"
+              />
+            </label>
+          </div>
+        </div>
 
         {/* Hero — vídeos editados */}
         <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">

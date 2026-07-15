@@ -7,17 +7,22 @@ import { StatsCards } from "@/components/StatsCards";
 import { DashboardCharts } from "@/components/DashboardCharts";
 import { RecentEditsTable } from "@/components/RecentEditsTable";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
-import { Film } from "lucide-react";
+import { Film, LogOut } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
 
 const Index = () => {
   const { data: edits, isLoading } = useVideoEdits();
+  const { currentEditor, signOut } = useAuth();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
   const rangeActive = from !== "" && to !== "";
   const allEdits = edits || [];
-  const activeEdits = allEdits.filter((e) => (e.status ?? "done") !== "done");
+  const activeEdits = allEdits.filter(
+    (e) => (e.status ?? "done") !== "done" && e.editor_name === currentEditor
+  );
   const doneEdits = allEdits.filter((e) => (e.status ?? "done") === "done");
   const filteredEdits = rangeActive
     ? doneEdits.filter((e) => e.edit_date >= from && e.edit_date <= to)
@@ -37,6 +42,17 @@ const Index = () => {
           <div>
             <h1 className="text-xl font-heading font-bold tracking-tight">Controle de Edição</h1>
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Agência F3F</p>
+          </div>
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            {currentEditor && (
+              <span className="hidden text-sm text-muted-foreground sm:inline">
+                Editor: <span className="font-medium text-foreground">{currentEditor}</span>
+              </span>
+            )}
+            <Button variant="outline" size="sm" onClick={() => signOut()}>
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sair</span>
+            </Button>
           </div>
         </div>
       </header>
