@@ -15,32 +15,46 @@ interface RecentEditsTableProps {
   edits: VideoEdit[];
 }
 
+// Lotes gravam os links nos arrays `raw_links` / `edited_links`; linhas antigas
+// usam as colunas singulares `raw_link` / `edited_link` (fallback).
+function linkList(arr: VideoEdit["raw_links"], legacy: string | null): string[] {
+  const links = Array.isArray(arr)
+    ? arr.filter((l): l is string => typeof l === "string" && l.trim() !== "")
+    : [];
+  if (links.length > 0) return links;
+  return legacy ? [legacy] : [];
+}
+
 function EditLinks({ edit }: { edit: VideoEdit }) {
-  if (!edit.raw_link && !edit.edited_link) return null;
+  const rawLinks = linkList(edit.raw_links, edit.raw_link);
+  const editedLinks = linkList(edit.edited_links, edit.edited_link);
+  if (rawLinks.length === 0 && editedLinks.length === 0) return null;
   return (
-    <div className="flex items-center gap-1.5">
-      {edit.raw_link && (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {rawLinks.map((link, i) => (
         <a
-          href={edit.raw_link}
+          key={`raw-${i}`}
+          href={link}
           target="_blank"
           rel="noopener noreferrer"
-          title="Vídeo bruto"
+          title={`Bruto ${i + 1}`}
           className="text-muted-foreground transition-colors hover:text-primary"
         >
           <Film className="h-4 w-4" />
         </a>
-      )}
-      {edit.edited_link && (
+      ))}
+      {editedLinks.map((link, i) => (
         <a
-          href={edit.edited_link}
+          key={`edited-${i}`}
+          href={link}
           target="_blank"
           rel="noopener noreferrer"
-          title="Vídeo editado"
+          title={`Editado ${i + 1}`}
           className="text-muted-foreground transition-colors hover:text-primary"
         >
           <ExternalLink className="h-4 w-4" />
         </a>
-      )}
+      ))}
     </div>
   );
 }

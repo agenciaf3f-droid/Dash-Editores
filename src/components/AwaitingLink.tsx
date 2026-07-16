@@ -43,8 +43,20 @@ function AwaitingLinkCard({ edit }: { edit: VideoEdit }) {
   const addLink = useAddEditedLink();
   const reopen = useReopenEditing();
 
+  // Um link editado por vídeo do lote.
+  const quantity = Math.max(1, edit.quantity ?? 1);
+  // Lotes gravam os brutos em `raw_links`; linhas antigas usam `raw_link` (fallback).
+  const rawLinks = Array.isArray(edit.raw_links)
+    ? edit.raw_links.filter((l): l is string => typeof l === "string" && l.trim() !== "")
+    : [];
+  const shownRawLinks = rawLinks.length > 0 ? rawLinks : edit.raw_link ? [edit.raw_link] : [];
   const [open, setOpen] = useState(false);
-  const [editedLink, setEditedLink] = useState("");
+  const [editedLinks, setEditedLinks] = useState<string[]>(() => Array(quantity).fill(""));
+
+  const allFilled = editedLinks.every((l) => l.trim());
+
+  const setEditedLinkAt = (i: number, value: string) =>
+    setEditedLinks((prev) => prev.map((l, idx) => (idx === i ? value : l)));
 
   // Safety net: if this card unmounts mid-dialog-close (adding the link removes
   // it from the queue), ensure Radix's body pointer-events lock is never stranded.
@@ -56,12 +68,12 @@ function AwaitingLinkCard({ edit }: { edit: VideoEdit }) {
   );
 
   const handleConfirmLink = () => {
-    if (!editedLink.trim()) return;
+    if (!allFilled) return;
     // Close synchronously first: adding the link moves this edit to `done`,
     // unmounting this card. Closing before the refetch avoids the pointer-events bug.
     setOpen(false);
-    addLink.mutate({ id: edit.id, editedLink: editedLink.trim() });
-    setEditedLink("");
+    addLink.mutate({ id: edit.id, editedLinks: editedLinks.map((l) => l.trim()) });
+    setEditedLinks(Array(quantity).fill(""));
   };
 
   const handleReopen = () => {
@@ -80,6 +92,9 @@ function AwaitingLinkCard({ edit }: { edit: VideoEdit }) {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <FormatBadge format={edit.video_format} />
+            {quantity > 1 && (
+              <span className="text-sm font-medium text-muted-foreground">×{quantity}</span>
+            )}
           </div>
         </div>
 
@@ -99,16 +114,21 @@ function AwaitingLinkCard({ edit }: { edit: VideoEdit }) {
           )}
         </div>
 
-        {edit.raw_link && (
-          <a
-            href={edit.raw_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
-          >
-            <Film className="h-3.5 w-3.5 shrink-0" />
-            <span className="min-w-0 truncate">{edit.raw_link}</span>
-          </a>
+        {shownRawLinks.length > 0 && (
+          <div className="space-y-1">
+            {shownRawLinks.map((link, i) => (
+              <a
+                key={i}
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
+              >
+                <Film className="h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 truncate">{link}</span>
+              </a>
+            ))}
+          </div>
         )}
 
         <div className="flex flex-wrap gap-2">
@@ -133,28 +153,38 @@ function AwaitingLinkCard({ edit }: { edit: VideoEdit }) {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adicionar link do vídeo editado</DialogTitle>
+            <DialogTitle>
+              {quantity > 1
+                ? `Adicionar links dos ${quantity} vídeos editados`
+                : "Adicionar link do vídeo editado"}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor={`edited-link-${edit.id}`}>Link do Vídeo Editado</Label>
-            <Input
-              id={`edited-link-${edit.id}`}
-              value={editedLink}
-              onChange={(e) => setEditedLink(e.target.value)}
-              placeholder="https://..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleConfirmLink();
-                }
-              }}
-            />
+          <div className="max-h-[60vh] space-y-3 overflow-y-auto">
+            {editedLinks.map((link, i) => (
+              <div key={i} className="space-y-2">
+                <Label htmlFor={`edited-link-${edit.id}-${i}`}>
+                  {quantity === 1 ? "Link do Vídeo Editado" : `Link do Vídeo Editado ${i + 1}`}
+                </Label>
+                <Input
+                  id={`edited-link-${edit.id}-${i}`}
+                  value={link}
+                  onChange={(e) => setEditedLinkAt(i, e.target.value)}
+                  placeholder="https://..."
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleConfirmLink();
+                    }
+                  }}
+                />
+              </div>
+            ))}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleConfirmLink} disabled={!editedLink.trim() || addLink.isPending}>
+            <Button onClick={handleConfirmLink} disabled={!allFilled || addLink.isPending}>
               Salvar
             </Button>
           </div>

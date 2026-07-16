@@ -39,12 +39,14 @@ export type Database = {
           edit_date: string
           editor_name: string
           edited_link: string | null
+          edited_links: Json
           elapsed_seconds: number
           finished_at: string | null
           id: string
           pauses: Json
           quantity: number
           raw_link: string | null
+          raw_links: Json
           status: string
           timer_started_at: string | null
           video_format: Database["public"]["Enums"]["video_format"]
@@ -56,12 +58,14 @@ export type Database = {
           edit_date?: string
           editor_name: string
           edited_link?: string | null
+          edited_links?: Json
           elapsed_seconds?: number
           finished_at?: string | null
           id?: string
           pauses?: Json
           quantity?: number
           raw_link?: string | null
+          raw_links?: Json
           status?: string
           timer_started_at?: string | null
           video_format: Database["public"]["Enums"]["video_format"]
@@ -73,12 +77,14 @@ export type Database = {
           edit_date?: string
           editor_name?: string
           edited_link?: string | null
+          edited_links?: Json
           elapsed_seconds?: number
           finished_at?: string | null
           id?: string
           pauses?: Json
           quantity?: number
           raw_link?: string | null
+          raw_links?: Json
           status?: string
           timer_started_at?: string | null
           video_format?: Database["public"]["Enums"]["video_format"]

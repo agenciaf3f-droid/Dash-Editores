@@ -31,9 +31,13 @@ type StartEditInput = {
   video_format: TablesInsert<"video_edits">["video_format"];
   editor_name: string;
   video_name: string;
-  raw_link: string | null;
+  quantity: number;
+  rawLinks: string[];
 };
 
+// Cria o lote com o cronômetro PARADO: `paused` + `timer_started_at: null` +
+// `elapsed_seconds: 0`. `pauses` NÃO é enviado (o default do banco é `[]`), então
+// o "Começar" seguinte (useResumeEdit sobre um array vazio) não registra intervalo.
 export function useStartEdit() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -41,16 +45,16 @@ export function useStartEdit() {
       const { data, error } = await supabase
         .from("video_edits")
         .insert({
-          status: "editing",
-          timer_started_at: new Date().toISOString(),
+          status: "paused",
+          timer_started_at: null,
           elapsed_seconds: 0,
           client_name: input.client_name,
           video_format: input.video_format,
           editor_name: input.editor_name,
           video_name: input.video_name,
-          raw_link: input.raw_link,
+          raw_links: input.rawLinks.filter((l) => l.trim()) as unknown as Json,
           edit_date: today(),
-          quantity: 1,
+          quantity: input.quantity,
         })
         .select()
         .single();
@@ -59,7 +63,7 @@ export function useStartEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["video-edits"] });
-      toast.success("Edição iniciada!");
+      toast.success("Edição criada — clique em Começar");
     },
     onError: () => {
       toast.error("Erro ao iniciar edição");
@@ -164,16 +168,17 @@ export function useFinishEditing() {
   });
 }
 
-// "Adicionar Link": informa o link do vídeo editado → vira `done` e passa a contar.
+// "Adicionar Link": informa os links dos vídeos editados (um por vídeo do lote)
+// → vira `done` e passa a contar.
 export function useAddEditedLink() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, editedLink }: { id: string; editedLink: string }) => {
+    mutationFn: async ({ id, editedLinks }: { id: string; editedLinks: string[] }) => {
       const { error } = await supabase
         .from("video_edits")
         .update({
           status: "done",
-          edited_link: editedLink,
+          edited_links: editedLinks as unknown as Json,
         })
         .eq("id", id);
       if (error) throw error;

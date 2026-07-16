@@ -39,6 +39,10 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
 
   const isEditing = edit.status === "editing";
   const pauses = (edit.pauses as unknown as Pause[]) ?? [];
+  // Lote criado mas nunca iniciado: cronômetro parado em 0 e nenhuma pausa registrada.
+  // (Uma edição pausada de verdade tem tempo acumulado e/ou intervalos de pausa.)
+  const neverStarted =
+    edit.status === "paused" && (edit.elapsed_seconds ?? 0) === 0 && pauses.length === 0;
   const lastPausedAt =
     edit.status === "paused" && pauses.length > 0 ? pauses[pauses.length - 1].paused_at : null;
 
@@ -95,6 +99,9 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <FormatBadge format={edit.video_format} />
+            {edit.quantity > 1 && (
+              <span className="text-sm font-medium text-muted-foreground">×{edit.quantity}</span>
+            )}
             <Badge
               variant="outline"
               className={
@@ -106,7 +113,7 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
               {isEditing && (
                 <span className="h-1.5 w-1.5 rounded-full bg-primary motion-safe:animate-pulse" />
               )}
-              {isEditing ? "Editando" : "Pausado"}
+              {isEditing ? "Editando" : neverStarted ? "Não iniciado" : "Pausado"}
             </Badge>
           </div>
         </div>
@@ -144,27 +151,36 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
             </Button>
           ) : (
             <Button
-              variant="outline"
+              variant={neverStarted ? "default" : "outline"}
               size="sm"
               onClick={handleResume}
               disabled={resumeEdit.isPending}
             >
               <Play className="mr-1.5 h-4 w-4" />
-              Retomar
+              {neverStarted ? "Começar" : "Retomar"}
             </Button>
           )}
           <Button
+            variant={neverStarted ? "outline" : "default"}
             size="sm"
             onClick={handleFinishEditing}
             disabled={!isEditing || finishEditing.isPending}
-            title={!isEditing ? "Retome a edição para concluir" : undefined}
+            title={
+              !isEditing
+                ? neverStarted
+                  ? "Clique em Começar para iniciar o cronômetro"
+                  : "Retome a edição para concluir"
+                : undefined
+            }
           >
             <CheckCircle2 className="mr-1.5 h-4 w-4" />
             Feito
           </Button>
           {!isEditing && (
             <span className="w-full text-[11px] text-muted-foreground">
-              Retome a edição para concluir.
+              {neverStarted
+                ? "Clique em Começar para iniciar o cronômetro."
+                : "Retome a edição para concluir."}
             </span>
           )}
         </div>

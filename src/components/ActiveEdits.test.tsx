@@ -30,10 +30,12 @@ const makeEdit = (over: Partial<VideoEdit>): VideoEdit => ({
   edit_date: "2026-07-15",
   editor_name: "Lucas",
   edited_link: null,
+  edited_links: [],
   elapsed_seconds: 0,
   finished_at: null,
   quantity: 1,
   raw_link: null,
+  raw_links: [],
   status: "editing",
   timer_started_at: null,
   video_format: "VSL",
@@ -124,5 +126,34 @@ describe("ActiveEdits", () => {
     render(<ActiveEdits edits={[makeEdit({ status: "paused", elapsed_seconds: 20, timer_started_at: null })]} />);
     expect(screen.getByRole("button", { name: "Feito" })).toBeDisabled();
     expect(finishMutate).not.toHaveBeenCalled();
+  });
+
+  // Lote recém-criado: paused + 0s + sem pausas → nunca iniciado.
+  it("shows 'Não iniciado' + Começar for a batch that was never started", () => {
+    render(
+      <ActiveEdits
+        edits={[makeEdit({ status: "paused", elapsed_seconds: 0, timer_started_at: null, pauses: [] })]}
+      />,
+    );
+    expect(screen.getByText("Não iniciado", { selector: "div" })).toBeInTheDocument();
+    expect(screen.getByTestId("active-timer").textContent).toBe("0s");
+    expect(screen.queryByText(/Pausado às/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Feito" })).toBeDisabled();
+
+    // "Começar" reutiliza useResumeEdit com pauses vazio → nenhum intervalo é gravado.
+    fireEvent.click(screen.getByRole("button", { name: "Começar" }));
+    expect(resumeMutate).toHaveBeenCalledTimes(1);
+    expect(resumeMutate.mock.calls[0][0]).toMatchObject({ id: "1", pauses: [] });
+  });
+
+  it("keeps 'Pausado' + Retomar for a genuinely paused edit with banked time", () => {
+    render(<ActiveEdits edits={[makeEdit({ status: "paused", elapsed_seconds: 12, timer_started_at: null })]} />);
+    expect(screen.getByText("Pausado", { selector: "div" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Começar" })).not.toBeInTheDocument();
+  });
+
+  it("shows ×quantity for a batch of several videos", () => {
+    render(<ActiveEdits edits={[makeEdit({ status: "editing", quantity: 3 })]} />);
+    expect(screen.getByText("×3")).toBeInTheDocument();
   });
 });

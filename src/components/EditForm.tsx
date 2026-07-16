@@ -14,14 +14,22 @@ type VideoFormat = Database["public"]["Enums"]["video_format"];
 
 const FORMATS: VideoFormat[] = ["VSL", "Criativo", "Ajuste", "IA", "CTAs", "Frank", "Hook"];
 
+const MAX_QUANTITY = 5;
+const QUANTITIES = [1, 2, 3, 4, 5];
+
 export function EditForm() {
   const { currentEditor } = useAuth();
   const [clientName, setClientName] = useState("");
   const [videoFormat, setVideoFormat] = useState<VideoFormat | "">("");
   const [videoName, setVideoName] = useState("");
-  const [rawLink, setRawLink] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  // Sempre 5 posições: reduzir a quantidade só esconde os extras (o submit corta).
+  const [rawLinks, setRawLinks] = useState<string[]>(() => Array(MAX_QUANTITY).fill(""));
 
   const startEdit = useStartEdit();
+
+  const setRawLinkAt = (i: number, value: string) =>
+    setRawLinks((prev) => prev.map((l, idx) => (idx === i ? value : l)));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,14 +41,17 @@ export function EditForm() {
         video_format: videoFormat as VideoFormat,
         editor_name: currentEditor,
         video_name: videoName.trim(),
-        raw_link: rawLink.trim() || null,
+        quantity,
+        // Corta em `quantity` para não enviar links de campos já escondidos.
+        rawLinks: rawLinks.slice(0, quantity).map((l) => l.trim()),
       },
       {
         onSuccess: () => {
           setClientName("");
           setVideoFormat("");
           setVideoName("");
-          setRawLink("");
+          setQuantity(1);
+          setRawLinks(Array(MAX_QUANTITY).fill(""));
         },
       }
     );
@@ -92,16 +103,42 @@ export function EditForm() {
               className="w-full min-w-0"
             />
           </div>
-          <div className="space-y-2 sm:min-w-[180px] sm:flex-1">
-            <Label htmlFor="raw-link">Link do Vídeo Bruto</Label>
-            <Input
-              id="raw-link"
-              value={rawLink}
-              onChange={(e) => setRawLink(e.target.value)}
-              placeholder="https://... (opcional)"
-              className="w-full min-w-0"
-            />
+          <div className="space-y-2 sm:min-w-[110px]">
+            <Label>Quantidade</Label>
+            <Select value={String(quantity)} onValueChange={(v) => setQuantity(Number(v))}>
+              <SelectTrigger className="min-w-0" aria-label="Quantidade">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {QUANTITIES.map((q) => (
+                  <SelectItem key={q} value={String(q)}>
+                    {q} {q === 1 ? "vídeo" : "vídeos"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Um "Link Bruto" por vídeo do lote (todos opcionais). */}
+          <div className="w-full space-y-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {rawLinks.slice(0, quantity).map((link, i) => (
+                <div key={i} className="min-w-0 space-y-2">
+                  <Label htmlFor={`raw-link-${i}`}>
+                    {quantity === 1 ? "Link do Vídeo Bruto" : `Link Bruto ${i + 1}`}
+                  </Label>
+                  <Input
+                    id={`raw-link-${i}`}
+                    value={link}
+                    onChange={(e) => setRawLinkAt(i, e.target.value)}
+                    placeholder="https://... (opcional)"
+                    className="w-full min-w-0"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           <Button type="submit" disabled={startEdit.isPending} className="w-full sm:w-auto sm:min-w-[130px] sm:self-end">
             {startEdit.isPending ? "Iniciando..." : "Iniciar Edição"}
           </Button>
