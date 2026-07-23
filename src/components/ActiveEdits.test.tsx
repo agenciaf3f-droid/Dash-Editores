@@ -40,6 +40,7 @@ const makeEdit = (over: Partial<VideoEdit>): VideoEdit => ({
   timer_started_at: null,
   video_format: "VSL",
   video_name: "Meu Vídeo",
+  video_names: [],
   pauses: [],
   ...over,
 });

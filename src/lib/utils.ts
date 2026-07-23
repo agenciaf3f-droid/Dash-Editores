@@ -7,6 +7,19 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Lê uma coluna jsonb de strings (`video_names`, `raw_links`, `edited_links`) e
+ * cai para a coluna singular antiga (`video_name`, `raw_link`, `edited_link`)
+ * quando o array está vazio — linhas criadas antes dos lotes só têm a singular.
+ */
+export function jsonStringList(arr: unknown, legacy: string | null | undefined): string[] {
+  const items = Array.isArray(arr)
+    ? arr.filter((v): v is string => typeof v === "string" && v.trim() !== "")
+    : [];
+  if (items.length > 0) return items;
+  return legacy && legacy.trim() ? [legacy] : [];
+}
+
+/**
  * Canonical accent per video format (H S L). One fixed color per format so the
  * "Por Formato" donut, its legend/tooltip, and the table/timer badges all agree —
  * color follows the format, never its rank in the data.

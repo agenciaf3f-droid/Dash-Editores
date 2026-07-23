@@ -30,8 +30,8 @@ type StartEditInput = {
   client_name: string;
   video_format: TablesInsert<"video_edits">["video_format"];
   editor_name: string;
-  video_name: string;
   quantity: number;
+  videoNames: string[];
   rawLinks: string[];
 };
 
@@ -42,6 +42,9 @@ export function useStartEdit() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (input: StartEditInput) => {
+      // Um nome por vídeo do lote. NÃO filtra: a posição do nome é o vídeo
+      // (nome i ↔ link i), então buracos não podem deslocar a lista.
+      const videoNames = input.videoNames.slice(0, input.quantity).map((n) => n.trim());
       const { data, error } = await supabase
         .from("video_edits")
         .insert({
@@ -51,7 +54,10 @@ export function useStartEdit() {
           client_name: input.client_name,
           video_format: input.video_format,
           editor_name: input.editor_name,
-          video_name: input.video_name,
+          video_names: videoNames as unknown as Json,
+          // Coluna singular antiga: mantida com o primeiro nome (compatibilidade
+          // com telas/linhas que ainda leem `video_name`).
+          video_name: videoNames[0] ?? null,
           raw_links: input.rawLinks.filter((l) => l.trim()) as unknown as Json,
           edit_date: today(),
           quantity: input.quantity,

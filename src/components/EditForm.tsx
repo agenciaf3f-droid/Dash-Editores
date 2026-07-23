@@ -21,27 +21,32 @@ export function EditForm() {
   const { currentEditor } = useAuth();
   const [clientName, setClientName] = useState("");
   const [videoFormat, setVideoFormat] = useState<VideoFormat | "">("");
-  const [videoName, setVideoName] = useState("");
   const [quantity, setQuantity] = useState(1);
   // Sempre 5 posições: reduzir a quantidade só esconde os extras (o submit corta).
+  const [videoNames, setVideoNames] = useState<string[]>(() => Array(MAX_QUANTITY).fill(""));
   const [rawLinks, setRawLinks] = useState<string[]>(() => Array(MAX_QUANTITY).fill(""));
 
   const startEdit = useStartEdit();
+
+  const setVideoNameAt = (i: number, value: string) =>
+    setVideoNames((prev) => prev.map((n, idx) => (idx === i ? value : n)));
 
   const setRawLinkAt = (i: number, value: string) =>
     setRawLinks((prev) => prev.map((l, idx) => (idx === i ? value : l)));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientName || !videoFormat || !videoName.trim() || !currentEditor) return;
+    const names = videoNames.slice(0, quantity).map((n) => n.trim());
+    // Todos os nomes são obrigatórios (um por vídeo do lote); os links não.
+    if (!clientName || !videoFormat || !currentEditor || names.some((n) => !n)) return;
 
     startEdit.mutate(
       {
         client_name: clientName,
         video_format: videoFormat as VideoFormat,
         editor_name: currentEditor,
-        video_name: videoName.trim(),
         quantity,
+        videoNames: names,
         // Corta em `quantity` para não enviar links de campos já escondidos.
         rawLinks: rawLinks.slice(0, quantity).map((l) => l.trim()),
       },
@@ -49,8 +54,8 @@ export function EditForm() {
         onSuccess: () => {
           setClientName("");
           setVideoFormat("");
-          setVideoName("");
           setQuantity(1);
+          setVideoNames(Array(MAX_QUANTITY).fill(""));
           setRawLinks(Array(MAX_QUANTITY).fill(""));
         },
       }
@@ -93,16 +98,6 @@ export function EditForm() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2 sm:min-w-[180px] sm:flex-1">
-            <Label htmlFor="video-name">Nome do Vídeo</Label>
-            <Input
-              id="video-name"
-              value={videoName}
-              onChange={(e) => setVideoName(e.target.value)}
-              placeholder="Ex.: VSL Cliente X"
-              className="w-full min-w-0"
-            />
-          </div>
           <div className="space-y-2 sm:min-w-[110px]">
             <Label>Quantidade</Label>
             <Select value={String(quantity)} onValueChange={(v) => setQuantity(Number(v))}>
@@ -119,21 +114,37 @@ export function EditForm() {
             </Select>
           </div>
 
-          {/* Um "Link Bruto" por vídeo do lote (todos opcionais). */}
-          <div className="w-full space-y-2">
+          {/* Um par "Nome + Link Bruto" por vídeo do lote (nome obrigatório, link opcional). */}
+          <div className="w-full">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {rawLinks.slice(0, quantity).map((link, i) => (
-                <div key={i} className="min-w-0 space-y-2">
-                  <Label htmlFor={`raw-link-${i}`}>
-                    {quantity === 1 ? "Link do Vídeo Bruto" : `Link Bruto ${i + 1}`}
-                  </Label>
-                  <Input
-                    id={`raw-link-${i}`}
-                    value={link}
-                    onChange={(e) => setRawLinkAt(i, e.target.value)}
-                    placeholder="https://... (opcional)"
-                    className="w-full min-w-0"
-                  />
+                <div
+                  key={i}
+                  className="min-w-0 space-y-2 rounded-lg border border-border bg-secondary/20 p-3"
+                >
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                    Vídeo {i + 1}
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`video-name-${i}`}>Nome do Vídeo {i + 1}</Label>
+                    <Input
+                      id={`video-name-${i}`}
+                      value={videoNames[i]}
+                      onChange={(e) => setVideoNameAt(i, e.target.value)}
+                      placeholder="Ex.: VSL Cliente X"
+                      className="w-full min-w-0"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`raw-link-${i}`}>Link Bruto {i + 1}</Label>
+                    <Input
+                      id={`raw-link-${i}`}
+                      value={link}
+                      onChange={(e) => setRawLinkAt(i, e.target.value)}
+                      placeholder="https://... (opcional)"
+                      className="w-full min-w-0"
+                    />
+                  </div>
                 </div>
               ))}
             </div>

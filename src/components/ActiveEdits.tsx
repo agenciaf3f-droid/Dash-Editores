@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Pause as PauseIcon, Play, CheckCircle2, Timer } from "lucide-react";
 import { usePauseEdit, useResumeEdit, useFinishEditing, type Pause } from "@/hooks/useVideoEdits";
 import { formatDuration, brTime } from "@/lib/time";
-import { cn } from "@/lib/utils";
+import { cn, jsonStringList } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
 type VideoEdit = Tables<"video_edits">;
@@ -38,6 +38,8 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
   const finishEditing = useFinishEditing();
 
   const isEditing = edit.status === "editing";
+  // Um nome por vídeo do lote; linhas antigas só têm a coluna singular.
+  const videoNames = jsonStringList(edit.video_names, edit.video_name);
   const pauses = (edit.pauses as unknown as Pause[]) ?? [];
   // Lote criado mas nunca iniciado: cronômetro parado em 0 e nenhuma pausa registrada.
   // (Uma edição pausada de verdade tem tempo acumulado e/ou intervalos de pausa.)
@@ -92,7 +94,17 @@ function ActiveEditCard({ edit }: { edit: VideoEdit }) {
       <CardContent className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate font-medium">{edit.video_name || "Sem nome"}</p>
+            <p
+              className="truncate font-medium"
+              title={videoNames.length > 1 ? videoNames.join(" · ") : undefined}
+            >
+              {videoNames[0] || "Sem nome"}
+              {videoNames.length > 1 && (
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                  +{videoNames.length - 1}
+                </span>
+              )}
+            </p>
             <p className="mt-0.5 truncate text-sm text-muted-foreground">
               {edit.client_name} · {edit.editor_name}
             </p>

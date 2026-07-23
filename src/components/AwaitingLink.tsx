@@ -13,6 +13,7 @@ import {
 import { Hourglass, Film, Link2, RotateCcw } from "lucide-react";
 import { useAddEditedLink, useReopenEditing } from "@/hooks/useVideoEdits";
 import { formatDuration, brTime } from "@/lib/time";
+import { jsonStringList } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
 type VideoEdit = Tables<"video_edits">;
@@ -45,11 +46,9 @@ function AwaitingLinkCard({ edit }: { edit: VideoEdit }) {
 
   // Um link editado por vídeo do lote.
   const quantity = Math.max(1, edit.quantity ?? 1);
-  // Lotes gravam os brutos em `raw_links`; linhas antigas usam `raw_link` (fallback).
-  const rawLinks = Array.isArray(edit.raw_links)
-    ? edit.raw_links.filter((l): l is string => typeof l === "string" && l.trim() !== "")
-    : [];
-  const shownRawLinks = rawLinks.length > 0 ? rawLinks : edit.raw_link ? [edit.raw_link] : [];
+  const shownRawLinks = jsonStringList(edit.raw_links, edit.raw_link);
+  // Um nome por vídeo; lotes antigos podem ter menos nomes que `quantity`.
+  const videoNames = jsonStringList(edit.video_names, edit.video_name);
   const [open, setOpen] = useState(false);
   const [editedLinks, setEditedLinks] = useState<string[]>(() => Array(quantity).fill(""));
 
@@ -85,7 +84,17 @@ function AwaitingLinkCard({ edit }: { edit: VideoEdit }) {
       <CardContent className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate font-medium">{edit.video_name || "Sem nome"}</p>
+            <p
+              className="truncate font-medium"
+              title={videoNames.length > 1 ? videoNames.join(" · ") : undefined}
+            >
+              {videoNames[0] || "Sem nome"}
+              {videoNames.length > 1 && (
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                  +{videoNames.length - 1}
+                </span>
+              )}
+            </p>
             <p className="mt-0.5 truncate text-sm text-muted-foreground">
               {edit.client_name} · {edit.editor_name}
             </p>
@@ -163,7 +172,7 @@ function AwaitingLinkCard({ edit }: { edit: VideoEdit }) {
             {editedLinks.map((link, i) => (
               <div key={i} className="space-y-2">
                 <Label htmlFor={`edited-link-${edit.id}-${i}`}>
-                  {quantity === 1 ? "Link do Vídeo Editado" : `Link do Vídeo Editado ${i + 1}`}
+                  Link editado — {videoNames[i] || `Vídeo ${i + 1}`}
                 </Label>
                 <Input
                   id={`edited-link-${edit.id}-${i}`}

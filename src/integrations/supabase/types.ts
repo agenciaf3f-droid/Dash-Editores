@@ -51,6 +51,7 @@ export type Database = {
           timer_started_at: string | null
           video_format: Database["public"]["Enums"]["video_format"]
           video_name: string | null
+          video_names: Json
         }
         Insert: {
           client_name: string
@@ -70,6 +71,7 @@ export type Database = {
           timer_started_at?: string | null
           video_format: Database["public"]["Enums"]["video_format"]
           video_name?: string | null
+          video_names?: Json
         }
         Update: {
           client_name?: string
@@ -89,6 +91,7 @@ export type Database = {
           timer_started_at?: string | null
           video_format?: Database["public"]["Enums"]["video_format"]
           video_name?: string | null
+          video_names?: Json
         }
         Relationships: []
       }

@@ -6,6 +6,7 @@ import { Trash2, List, Film, ExternalLink } from "lucide-react";
 import { useDeleteVideoEdit, type Pause } from "@/hooks/useVideoEdits";
 import type { Tables } from "@/integrations/supabase/types";
 import { formatDuration, brTime } from "@/lib/time";
+import { jsonStringList } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -15,19 +16,24 @@ interface RecentEditsTableProps {
   edits: VideoEdit[];
 }
 
-// Lotes gravam os links nos arrays `raw_links` / `edited_links`; linhas antigas
-// usam as colunas singulares `raw_link` / `edited_link` (fallback).
-function linkList(arr: VideoEdit["raw_links"], legacy: string | null): string[] {
-  const links = Array.isArray(arr)
-    ? arr.filter((l): l is string => typeof l === "string" && l.trim() !== "")
-    : [];
-  if (links.length > 0) return links;
-  return legacy ? [legacy] : [];
+// Nome de cada vídeo do lote (`video_names`); linhas antigas caem na coluna
+// singular `video_name`. Mostra o primeiro + "+N" com a lista completa no title.
+function VideoNames({ edit }: { edit: VideoEdit }) {
+  const names = jsonStringList(edit.video_names, edit.video_name);
+  if (names.length === 0) return <>—</>;
+  return (
+    <span title={names.length > 1 ? names.join(" · ") : undefined}>
+      {names[0]}
+      {names.length > 1 && (
+        <span className="ml-1.5 text-xs text-muted-foreground/70">+{names.length - 1}</span>
+      )}
+    </span>
+  );
 }
 
 function EditLinks({ edit }: { edit: VideoEdit }) {
-  const rawLinks = linkList(edit.raw_links, edit.raw_link);
-  const editedLinks = linkList(edit.edited_links, edit.edited_link);
+  const rawLinks = jsonStringList(edit.raw_links, edit.raw_link);
+  const editedLinks = jsonStringList(edit.edited_links, edit.edited_link);
   if (rawLinks.length === 0 && editedLinks.length === 0) return null;
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -122,7 +128,7 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                       </TableCell>
                       <TableCell className="font-medium">{edit.client_name}</TableCell>
                       <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                        {edit.video_name || "—"}
+                        <VideoNames edit={edit} />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -186,8 +192,10 @@ export function RecentEditsTable({ edits }: RecentEditsTableProps) {
                 >
                   <div className="min-w-0">
                     <p className="truncate font-medium">{edit.client_name}</p>
-                    {edit.video_name && (
-                      <p className="truncate text-xs text-muted-foreground">{edit.video_name}</p>
+                    {jsonStringList(edit.video_names, edit.video_name).length > 0 && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        <VideoNames edit={edit} />
+                      </p>
                     )}
                     <p className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground">
                       {format(new Date(edit.edit_date + "T12:00:00"), "dd MMM yyyy", { locale: ptBR })} {brTime(edit.finished_at ?? edit.created_at)} · {edit.editor_name}
